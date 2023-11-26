@@ -1,11 +1,11 @@
 import { NostrFetcher } from 'nostr-fetch';
 import { SimplePool } from 'nostr-tools';
 import { simplePoolAdapter } from '@nostr-fetch/adapter-nostr-tools'
+import Trawler from './Trawler.js'
 
 class NTFetcher {
   constructor(relays, options) {
     this.relays = relays
-    super(options);
     this.promises = []
     this.defaults = {
       queueName: 'trawlerQueue',

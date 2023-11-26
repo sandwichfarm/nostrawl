@@ -7,9 +7,9 @@ class BullMqTrawler extends Trawler {
     super(relays, options)
     this.$q = {}
     this.$q.$redis = new Redis()
-    this.$q.queue = new Queue(this.config.queueName, { ...this.options.queueOptions, connection: this.options.adapterOptions.redis })
+    this.$q.queue = new Queue(this.options.queueName, { ...this.options.queueOptions, connection: this.options.adapterOptions.redis })
     this.$q.worker = new Worker(
-      this.config.queueName, 
+      this.options.queueName, 
         async $job => this.trawl($job.data.relay, $job), 
         { ...this.options.workerOptions, connection: this.options.adapterOptions.redis }
       )  

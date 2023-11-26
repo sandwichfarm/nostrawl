@@ -8,8 +8,8 @@
 `nostr-trawl` is a simple tool for persistently fetching and processing filtered events from a set of [Nostr](https://nostr.io) relays.
 
 ## Queue Adapters
-- `BullMQTrawler`: Persistent queue
-- `PQueueTrawler`: Ephemeral javascript queue
+- `BullMQAdapter`: Persistent queue
+- `PQueueAdapter`: Ephemeral javascript queue
 
 ## Usage 
 _Theoretical usage, tests and implementation are incomplete_ 
@@ -28,6 +28,9 @@ const options = {
   repeatWhenComplete: true,
   restDuration: 60*60*1000,
   relaysPerBatch: 3,
+  nostrFetchOptions: {
+    sort: true
+  },
   adapterOptions: {
     redis: {
       host: 'localhost',

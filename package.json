@@ -2,5 +2,16 @@
   "name": "nostr-trawl",
   "version": "1.0.0",
   "main": "src/index.js",
-  "license": "MIT"
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "example": "node ./examples/index.js"
+  },
+  "dependencies": {
+    "@nostr-fetch/adapter-nostr-tools": "0.13.1",
+    "bullmq": "4.14.2",
+    "nostr-fetch": "0.13.1",
+    "nostr-tools": "1.17.0",
+    "p-queue": "7.4.1"
+  }
 }

@@ -1,34 +1,46 @@
+import NTFetcher from './Fetcher.js'
+
 class NTTrawler extends NTFetcher {
   constructor(relays, options) {
     super(relays, options)
     this.$q = null
     this.queue 
     this.worker
+    this.cb = {}
     this.since = {}
   }
   
-  getLastSync(relay){
-    if(this.config instanceof Number)
-      return this.config
+  getSince(relay){
+    if(!this.options?.since)
+      return 0
+    if(this.options.since instanceof Number)
+      return this.options.since
     else if(this.since?.[relay])
       return this.since[relay]
-    else if(this.config instanceof Object)
-      if(this.config?.[relay])
-        return this.config[relay]
+    else if(this.options.since instanceof Object)
+      if(this.options.since?.[relay])
+        return this.options.since[relay]
       else
         return 0
   }
 
+  setSince(key, timestamp){
+    this.since[key] = timestamp
+  }
+
   on(key, callback){
     this.cb[key] = callback
+    return this
   }
 
   on_queue(key, data){
     this.on(`queue_${key}`, data)
+    return this
   }
 
-  on_job(key, data){
+  on_worker(key, data){
     this.on(`job_${key}`, data)
+    return this
   }
 
   _on(key, data){
@@ -36,9 +48,6 @@ class NTTrawler extends NTFetcher {
       this.cb[key](data)
   }
 
-  updateLastSync(key, timestamp){
-    this.since[key] = timestamp
-  }
 
   addFirstJob(fn, target){
     
