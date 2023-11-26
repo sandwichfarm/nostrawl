@@ -1,4 +1,4 @@
-> early alpha, written without trying to run it once. Don't use this yet. 
+> early alpha. the example works, but no tests are written yet. Also the PQueueAdapter is not yet implemented.
 
 # nostr-trawl 
 > Trawl [/trɔːl/] 
@@ -7,15 +7,43 @@
 
 `nostr-trawl` is a simple tool for persistently fetching and processing filtered events from a set of [Nostr](https://nostr.io) relays.
 
+## Install
+_yarn_
+```
+yarn add nostr-crawl
+```
+
+_pnpm_
+```
+pnpm install nostr-crawl
+```
+
+_npm_
+```
+npm install nnostr-crawl
+```
+## Example
+There's an example in scripts, for example with yarn: 
+```
+yarn example
+```
+
+_Note: This example is for demonstration purposes only, the example will likely hit memory limits if left running too long_
+
+## Run Tests
+_What tests?_
+
+## Docs
+I'll write docs once there are tests and both adapters are implemented. 
+
 ## Queue Adapters
 - `BullMQAdapter`: Persistent queue
 - `PQueueAdapter`: Ephemeral javascript queue
 
 ## Usage 
-_Theoretical usage, tests and implementation are incomplete_ 
 
 ```js
-import { createTrawler } from '../src/index.js'
+import { createTrawler } from 'nostr-crawl'
 
 const relays = [ 'wss://relay.damus.io', 'wss://relay.snort.social' ]
 
