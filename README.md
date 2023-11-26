@@ -1,7 +1,11 @@
-> early alpha, written without trying to run it once.
+> early alpha, written without trying to run it once. Don't use this yet. 
 
 # nostr-trawl 
-Queues up jobs and runs `nostr-fetch` jobs, returning parser data. Queue events are accessible via `on`. Can support different queues.
+> Trawl [/trɔːl/] 
+> 1. an act of fishing with a trawl net or seine.
+> 2. a thorough search.
+
+`nostr-trawl` is a simple tool for persistently fetching and processing filtered events from a set of [Nostr](https://nostr.io) relays.
 
 ## Queue Adapters
 - `BullMQTrawler`: Persistent queue
