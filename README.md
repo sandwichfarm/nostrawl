@@ -34,7 +34,7 @@ _Note: This example is for demonstration purposes only, the example will likely 
 _What tests?_
 
 ## Docs
-I'll write docs once there are tests and both adapters are implemented. 
+I'll write docs once there are tests, both adapters are implemented and there is demand.
 
 ## Queue Adapters
 - `BullMQAdapter`: Persistent queue
