@@ -30,7 +30,7 @@ const options = {
       port: 6379, 
       db: 0
     }
-  }
+  },
   parser: (event) => {
     event_ids.add(event.id)
     console.log(event)
