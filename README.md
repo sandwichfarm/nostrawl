@@ -24,6 +24,13 @@ const options = {
   repeatWhenComplete: true,
   restDuration: 60*60*1000,
   relaysPerBatch: 3,
+  adapterOptions: {
+    redis: {
+      host: 'localhost',
+      port: 6379, 
+      db: 0
+    }
+  }
   parser: (event) => {
     event_ids.add(event.id)
     console.log(event)
@@ -36,8 +43,11 @@ const options = {
 }
 
 const trawler = trawlNostr(relays, options)
+
 trawler
-  .on_worker('completed', (job) => console.log(`${relay} completed`, 'data:', job))
-  .on_worker('progress', (job) => console.log(`${job.found} events found and ${job.rejected} events rejected`)
+  .on_worker('completed', (job) => console.log(`${job.data.relay}: completed jobn`, 'data:', job))
+  .on_worker('progress', (job, progress) => console.log(`${job.data.relay}: ${progress.found} events found and ${progress.rejected} events rejected`)
+  .on_queue('drained', () => console.log(`queue is empty`))
+
 trawler.run()
 ```

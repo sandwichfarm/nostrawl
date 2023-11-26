@@ -7,27 +7,27 @@ class BullMqTrawler extends Trawler {
     super(relays, options)
     this.$q = {}
     this.$q.$redis = new Redis()
-    this.$q.queue = new Queue(this.config.queueName, { connection: this.options.connection })
+    this.$q.queue = new Queue(this.config.queueName, { ...this.options.queueOptions, connection: this.options.adapterOptions.redis })
     this.$q.worker = new Worker(
       this.config.queueName, 
         async $job => this.trawl($job.data.relay, $job), 
-        { ...this.options.workerOptions, connection: this.options.connection }
+        { ...this.options.workerOptions, connection: this.options.adapterOptions.redis }
       )  
-    this.$q.queue.on('active', (data) => this._on('queue_active', data))
-    this.$q.queue.on('completed', (data) => this._on('queue_completed', data))
-    this.$q.queue.on('failed', (data) => this._on('queue_failed', data))
-    this.$q.queue.on('progress', (data) => this._on('queue_progress', data))
-    this.$q.queue.on('waiting', (data) => this._on('queue_waiting', data))
-    this.$q.queue.on('drained', (data) => this._on('queue_drained', data))  
-    this.$q.queue.on('cleaned', (data) => this._on('queue_cleaned', data))
+    this.$q.queue.on('active', (...args) => this._on('queue_active', ...args))
+    this.$q.queue.on('completed', (...args) => this._on('queue_completed', ...args))
+    this.$q.queue.on('failed', (...args) => this._on('queue_failed', ...args))
+    this.$q.queue.on('progress', (...args) => this._on('queue_progress', ...args))
+    this.$q.queue.on('waiting', (...args) => this._on('queue_waiting', ...args))
+    this.$q.queue.on('drained', (...args) => this._on('queue_drained', ...args))  
+    this.$q.queue.on('cleaned', (...args) => this._on('queue_cleaned', ...args))
 
-    this.$q.worker.on('active', (data) => this._on('worker_active', data))
-    this.$q.worker.on('completed', (data) => this._on('worker_completed', data))
-    this.$q.worker.on('failed', (data) => this._on('worker_failed', data))
-    this.$q.worker.on('progress', (data) => this._on('worker_progress', data))
-    this.$q.worker.on('waiting', (data) => this._on('worker_waiting', data))
-    this.$q.worker.on('drained', (data) => this._on('worker_drained', data))
-    this.$q.worker.on('cleaned', (data) => this._on('worker_cleaned', data))
+    this.$q.worker.on('active', (...args) => this._on('worker_active', ...args))
+    this.$q.worker.on('completed', (...args) => this._on('worker_completed', ...args))
+    this.$q.worker.on('failed', (...args) => this._on('worker_failed', ...args))
+    this.$q.worker.on('progress', (...args) => this._on('worker_progress', ...args))
+    this.$q.worker.on('waiting', (...args) => this._on('worker_waiting', ...args))
+    this.$q.worker.on('drained', (...args) => this._on('worker_drained', ...args))
+    this.$q.worker.on('cleaned', (...args) => this._on('worker_cleaned', ...args))
     this.pause()
   }
 
