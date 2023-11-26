@@ -9,23 +9,10 @@ class NTTrawler extends NTFetcher {
     this.cb = {}
     this.since = {}
   }
-  
-  getSince(relay){
-    if(!this.options?.since)
-      return 0
-    if(this.options.since instanceof Number)
-      return this.options.since
-    else if(this.since?.[relay])
-      return this.since[relay]
-    else if(this.options.since instanceof Object)
-      if(this.options.since?.[relay])
-        return this.options.since[relay]
-      else
-        return 0
-  }
 
-  setSince(key, timestamp){
-    this.since[key] = timestamp
+  _on(key, ...args){
+    if(this.cb?.[key])
+      this.cb[key](...args)
   }
 
   on(key, callback){
@@ -39,15 +26,9 @@ class NTTrawler extends NTFetcher {
   }
 
   on_worker(key, data){
-    this.on(`job_${key}`, data)
+    this.on(`worker_${key}`, data)
     return this
   }
-
-  _on(key, data){
-    if(this.cb?.[key])
-      this.cb[key](data)
-  }
-
 
   addFirstJob(fn, target){
     

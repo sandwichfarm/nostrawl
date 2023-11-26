@@ -10,8 +10,10 @@
   "dependencies": {
     "@nostr-fetch/adapter-nostr-tools": "0.13.1",
     "bullmq": "4.14.2",
+    "ioredis": "5.3.2",
     "nostr-fetch": "0.13.1",
     "nostr-tools": "1.17.0",
-    "p-queue": "7.4.1"
+    "p-queue": "7.4.1",
+    "websocket-polyfill": "0.0.3"
   }
 }

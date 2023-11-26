@@ -3,11 +3,16 @@ import BullMqTrawler from './adapters/BullMqTrawler.js';
 
 export const createTrawler = (relays, options) => {
   const adapter = options.adapter || 'bullmq'
+  let $adapter
   switch (adapter) {
     case 'bullmq':
-      return new BullMqTrawler(relays, options)
+      $adapter = new BullMqTrawler(relays, options)
+      $adapter.init()
+      return $adapter
     case 'pqueue':
     default:
-      return new PQueueTrawler(relays, options)
+      $adapter = new PQueueTrawler(relays, options)
+      $adapter.init()
+      return $adapter 
   }
 }

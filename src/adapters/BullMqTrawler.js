@@ -1,16 +1,31 @@
 import { Queue, Worker } from 'bullmq';
-import Redis from 'ioredis';
+// import Redis from 'ioredis';
 import Trawler from '../classes/Trawler.js'
 
 class BullMqTrawler extends Trawler {
   constructor(relays, options) {
     super(relays, options)
     this.$q = {}
-    this.$q.$redis = new Redis()
-    this.$q.queue = new Queue(this.options.queueName, { ...this.options.queueOptions, connection: this.options.adapterOptions.redis })
+
+    this.defaults = {
+      connection: {
+        host: '127.0.0.1',
+        port: 6379,
+        db: 0
+      }
+    }
+  }
+
+  async init(){
+    const queueOpts = { ...this.defaults, ...this.options.queueOptions, connection: this.options.adapterOptions.redis }
+    console.log(this.options.queueName, queueOpts)
+    this.$q.queue = new Queue(this.options.queueName, queueOpts)
     this.$q.worker = new Worker(
-      this.options.queueName, 
-        async $job => this.trawl($job.data.relay, $job), 
+        this.options.queueName, 
+        async $job => { 
+          console.log('call trawl() from bullmq adapter')
+          this.trawl($job.data.chunk, $job)
+        }, 
         { ...this.options.workerOptions, connection: this.options.adapterOptions.redis }
       )  
     this.$q.queue.on('active', (...args) => this._on('queue_active', ...args))
@@ -31,12 +46,12 @@ class BullMqTrawler extends Trawler {
     this.pause()
   }
 
-  async updateProgress($job, progress){
+  async updateProgress(progress, $job){
     await $job.updateProgress(progress)
   }
 
-  async addJob(relay){
-    await this.$q.queue.add({ relay })
+  async addJob(index, chunk){
+    return this.$q.queue.add(`chunk #${index}`, { chunk })
   }
 
   async pause(){
