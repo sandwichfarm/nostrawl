@@ -4,8 +4,8 @@
 Queues up jobs and runs `nostr-fetch` jobs, returning parser data. Queue events are accessible via `on`. Can support different queues.
 
 ## Queue Adapters
-- `BullMQTrawler`: Persistent queue based on redics 
-- `p-queue`: Ephemeral javascript queue
+- `BullMQTrawler`: Persistent queue
+- `PQueueTrawler`: Ephemeral javascript queue
 
 ## Usage 
 _Theoretical usage, tests and implementation are incomplete_ 
