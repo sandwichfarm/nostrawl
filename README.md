@@ -15,14 +15,14 @@
 _Theoretical usage, tests and implementation are incomplete_ 
 
 ```js
-import { trawlNostr } from 'nostr-trawl'
+import { createTrawler } from '../src/index.js'
 
-const relays = [ ... ]
+const relays = [ 'wss://relay.damus.io', 'wss://relay.snort.social' ]
 
 const event_ids = new Set()
 
 const options = {
-  filters: { kind: 3 },
+  filters: { kinds: [3] },
   adapter: 'bullmq',
   queueName: 'ContactLists',
   repeatWhenComplete: true,
@@ -38,9 +38,13 @@ const options = {
       db: 0
     }
   },
-  parser: (event) => {
+  queueOptions: {
+    removeOnComplete: true, 
+    removeOnFail: true
+  },
+  parser: async (event) => {
     event_ids.add(event.id)
-    console.log(event)
+    // console.log(event.created_at)
   },
   validator: (event) => {
     if(event_ids.has(event.id))
@@ -49,11 +53,11 @@ const options = {
   } 
 }
 
-const trawler = trawlNostr(relays, options)
+const trawler = createTrawler(relays, options)
 
 trawler
   .on_worker('completed', (job) => console.log(`${job.data.relay}: completed jobn`, 'data:', job))
-  .on_worker('progress', (job, progress) => console.log(`${job.data.relay}: ${progress.found} events found and ${progress.rejected} events rejected`)
+  .on_worker('progress', (job, progress) => console.log(`[chunk #${progress.last_timestamp}] ${progress.relay}: ${progress.found} events found and ${progress.rejected} events rejected`))
   .on_queue('drained', () => console.log(`queue is empty`))
 
 trawler.run()
