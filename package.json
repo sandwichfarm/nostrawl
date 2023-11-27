@@ -1,6 +1,7 @@
 {
-  "name": "nostr-trawl",
+  "name": "nostrawl",
   "version": "1.0.0",
+  "description": "A nostr library for continously retrieving events from nostr relays based on a set of filters.",
   "main": "src/index.js",
   "license": "MIT",
   "type": "module",

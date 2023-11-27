@@ -9,7 +9,7 @@ services:
       - ./.redis:/data:rw
     command: redis-server
 
-  nostr-trawl:
+  nostrawl:
     build: 
       context: ../../
       dockerfile: examples/bullmq/Dockerfile

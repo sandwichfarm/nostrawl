@@ -1,4 +1,4 @@
-import { createTrawler } from '../../src/index.js'
+import { nostrawl } from '../../src/index.js'
 import dotenv from 'dotenv'
 
 dotenv.config()
@@ -41,7 +41,7 @@ const options = {
   } 
 }
 
-const trawler = createTrawler(relays, options)
+const trawler = nostrawl(relays, options)
 
 trawler
   .on_worker('progress', (job, progress) => console.log(`[@${progress.last_timestamp}] ${progress.found} events found and ${progress.rejected} events rejected from  ${progress.relay}`))

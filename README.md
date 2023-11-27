@@ -1,28 +1,28 @@
 > early alpha. the example works, but no tests are written yet. Also the PQueueAdapter is not yet implemented.
 
-# nostr-trawl 
+# nostrawl 
 > Trawl [/trɔːl/] 
 > 1. an act of fishing with a trawl net or seine.
 > 2. a thorough search.
 
-`nostr-trawl` is a simple tool for persistently fetching and processing filtered events from a set of [Nostr](https://nostr.io) relays.
+`nostrawl` is a simple tool for persistently fetching and processing filtered events from a set of [Nostr](https://nostr.io) relays.
 
-`nostr-trawl` is a wrapper for `nostr-fetch` (with the `nostr-tools` simple-pool adapter) and implements adapters for queuing fetch jobs. 
+`nostrawl` is a wrapper for `nostr-fetch` (with the `nostr-tools` simple-pool adapter) and implements adapters for queuing fetch jobs. 
 
 ## Install
 _yarn_
 ```
-yarn add nostr-crawl
+yarn add nostrawl
 ```
 
 _pnpm_
 ```
-pnpm install nostr-crawl
+pnpm install nostrawl
 ```
 
 _npm_
 ```
-npm install nnostr-crawl
+npm install nostrawl
 ```
 ## Example
 There's an example in scripts, it requires docker. 

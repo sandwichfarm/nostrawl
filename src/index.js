@@ -1,7 +1,7 @@
 import PQueueTrawler from './adapters/PQueueTrawler.js';
 import BullMqTrawler from './adapters/BullMqTrawler.js';  
 
-export const createTrawler = (relays, options) => {
+export const nostrawl = (relays, options) => {
   const adapter = options.adapter || 'bullmq'
   let $adapter
   switch (adapter) {
