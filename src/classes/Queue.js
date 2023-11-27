@@ -35,8 +35,7 @@ class NTQueue extends NTTrawler {
 
   async handle_queue_drained($job, result){
     const timeoutExists = this.repeatTimeout && !this.repeatTimeout._destroyed
-    const jobs = await this.$q.queue.getJobs(['waiting', 'active'], 0, 0, false)
-    if(this.options?.repeatWhenComplete && !this.repeatTimeout) {
+    if(this.options?.repeatWhenComplete && !timeoutExists) {
       console.log(`Resting for ${Math.round(this.options?.restDuration/1000)} seconds and then picking up where we left off`)
       this.repeatTimeout = setTimeout( () => this.run(), this.options?.restDuration )
     }
