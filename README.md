@@ -45,9 +45,11 @@ I'll write docs once there are tests, both adapters are implemented and there is
 ## Usage 
 
 ```js
-import { createTrawler } from 'nostr-crawl'
+import { nostrawl } from 'nostrawl'
+import dotenv from 'dotenv'
+dotenv.config()
 
-const relays = [ 'wss://relay.damus.io', 'wss://relay.snort.social' ]
+const relays = ["wss://relay.damus.io","wss://nostr-pub.wellorder.net","wss://nostr.mom","wss://nostr.slothy.win","wss://global.relay.red"]
 
 const event_ids = new Set()
 
@@ -57,15 +59,17 @@ const options = {
   queueName: 'ContactLists',
   repeatWhenComplete: true,
   restDuration: 60*60*1000,
+  strictTimestamps: true,
   relaysPerBatch: 3,
+  since: Math.round(Date.now()/1000-(60*60)),
   nostrFetchOptions: {
     sort: true
   },
   adapterOptions: {
     redis: {
-      host: 'localhost',
-      port: 6379, 
-      db: 0
+      host: process.env.REDIS_HOST || 'localhost',
+      port: process.env.REDIS_PORT || 6379, 
+      db: process.env.REDIS_DB || 0 
     }
   },
   queueOptions: {
@@ -83,12 +87,12 @@ const options = {
   } 
 }
 
-const trawler = createTrawler(relays, options)
+const trawler = nostrawl(relays, options)
 
 trawler
-  .on_worker('completed', (job) => console.log(`${job.data.relay}: completed jobn`, 'data:', job))
-  .on_worker('progress', (job, progress) => console.log(`[chunk #${progress.last_timestamp}] ${progress.relay}: ${progress.found} events found and ${progress.rejected} events rejected`))
+  .on_worker('progress', (job, progress) => console.log(`[@${progress.last_timestamp}] ${progress.found} events found and ${progress.rejected} events rejected from  ${progress.relay}`))
   .on_queue('drained', () => console.log(`queue is empty`))
+  .on_worker('completed', (job) => console.log(`${job.id} completed`))
 
 trawler.run()
 ```
