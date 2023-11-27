@@ -34,8 +34,7 @@ class BullMqAdapter extends NTQueue {
   }
 
   worker_init(){
-    this.$q.worker = new Worker(this.options.queueName, async $job =>  await this.trawl($job.data.chunk, $job), this.options.workerOptions)  
-    
+    this.$q.worker = new Worker(this.$q.queue.name, async $job =>  await this.trawl($job.data.chunk, $job), this.options.workerOptions)  
     this.$q.worker.on('active',     (...args) => this._on('worker_active',    ...args).catch(console.error))
     this.$q.worker.on('completed',  (...args) => this._on('worker_completed', ...args).catch(console.error))
     this.$q.worker.on('failed',     (...args) => this._on('worker_failed',    ...args).catch(console.error))
