@@ -1,4 +1,4 @@
-> early alpha. the example works, but no tests are written yet. Also the PQueueAdapter is not yet implemented.
+> early alpha. the example works, but no tests are written yet. Also the PQueueAdapter is not yet implemented. Also, not yet on npm so those install instructions don't work. sns. 
 
 # nostrawl 
 > Trawl [/trɔːl/] 
