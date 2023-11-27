@@ -3,6 +3,7 @@ import { NostrFetcher } from 'nostr-fetch';
 import { SimplePool } from 'nostr-tools';
 import { simplePoolAdapter } from '@nostr-fetch/adapter-nostr-tools'
 import Trawler from './Trawler.js'
+import Deferred from 'promise-deferred'
 
 class NTFetcher {
   constructor(relays, options) {
@@ -17,6 +18,7 @@ class NTFetcher {
       parser: () => {},
       filters: {},
       since: 0,
+      sinceStrict: true,
       adapter: 'pqueue',
       nostrFetcherOptions: { sort: true },
       adapterOptions: {},
@@ -28,7 +30,7 @@ class NTFetcher {
 
   async run(){
     let i=0
-    for await (const chunk of this.chunk_relays()) {
+    for (const chunk of this.chunk_relays()) {
       const $job = await this.addJob(i, chunk)
       i++
     }
@@ -36,41 +38,49 @@ class NTFetcher {
   }
 
   async trawl(chunk, $job){
-    chunk.forEach( async relay => {
-      const pool = new SimplePool()
-      const fetcher = NostrFetcher.withCustomPool(simplePoolAdapter(pool))
-      const since = this.getSince(relay)
-      const progress = {
-        found: 0,
-        rejected: 0,
-        last_timestamp: 0
-      }
-      let lastProgressUpdate = 0
-  
-      const it = fetcher.allEventsIterator(
-        [ relay ],
-        this.options.filters,
-        since,
-        this.options.nostrFetcherOptions
-      )
-  
-      for await (const event of it){ 
-        if(!this.options.validator(event)) {
-          progress.rejected++
-          continue
+    const promises = chunk.map((relay, index) => new Promise(async (resolve) => {
+      try {
+        const pool = new SimplePool()
+        const fetcher = NostrFetcher.withCustomPool(simplePoolAdapter(pool))
+        const since = this.getSince(relay)
+        const progress = {
+          found: 0,
+          rejected: 0,
+          last_timestamp: 0
         }
-        await this.options.parser(event, $job)
-        if(event?.created_at)
-          this.updateSince(relay, event.created_at)
-        progress.found++
-        progress.last_timestamp = this.getSince(relay)
-        progress.relay = relay
-        if(Date.now() - lastProgressUpdate > this.options.progressEvery){
-          this.updateProgress(progress, $job)
-          lastProgressUpdate = Date.now()
+        let lastProgressUpdate = 0
+    
+        const it = fetcher.allEventsIterator(
+          [ relay ],
+          this.options.filters,
+          { since },
+          this.options.nostrFetcherOptions
+        )
+    
+        for await (const event of it){ 
+          const failedValidation = !this.options.validator(event)
+          if(failedValidation) {
+            progress.rejected++
+            continue
+          }
+          await this.options.parser(event, $job)
+          if(event?.created_at)
+            this.updateSince(relay, event.created_at)
+          progress.found++
+          progress.last_timestamp = this.getSince(relay)
+          progress.relay = relay
+          if(Date.now() - lastProgressUpdate > this.options.progressEvery){
+            this.updateProgress(progress, $job)
+            lastProgressUpdate = Date.now()
+          }
         }
+        resolve(this.getSince(relay))
+      } catch (error) {
+        console.error('Error', error);
+        reject(error);  // Reject the promise on error
       }
-    })
+    }))
+    const results = await Promise.allSettled(promises);
   }
 
   chunk_relays(){

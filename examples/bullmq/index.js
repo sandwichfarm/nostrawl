@@ -13,8 +13,9 @@ const options = {
   queueName: 'ContactLists',
   repeatWhenComplete: true,
   restDuration: 60*60*1000,
+  strictTimestamps: true,
   relaysPerBatch: 3,
-  since: Math.round(Date.now()/1000-(60*60*12)),
+  since: Math.round(Date.now()/1000-(60*60)),
   nostrFetchOptions: {
     sort: true
   },
@@ -45,5 +46,6 @@ const trawler = createTrawler(relays, options)
 trawler
   .on_worker('progress', (job, progress) => console.log(`[@${progress.last_timestamp}] ${progress.found} events found and ${progress.rejected} events rejected from  ${progress.relay}`))
   .on_queue('drained', () => console.log(`queue is empty`))
+  .on_worker('completed', (job) => console.log(`${job.id} completed`))
 
 trawler.run()

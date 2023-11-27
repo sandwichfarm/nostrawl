@@ -12,7 +12,9 @@ class BullMqTrawler extends Trawler {
         host: '127.0.0.1',
         port: 6379,
         db: 0
-      }
+      },
+      removeOnComplete: true, 
+      removeOnFail: true
     }
   }
 
@@ -23,27 +25,27 @@ class BullMqTrawler extends Trawler {
     this.$q.worker = new Worker(
         this.options.queueName, 
         async $job => { 
-          console.log('call trawl() from bullmq adapter')
-          this.trawl($job.data.chunk, $job)
+          console.log(`trawl job: worker ${$job.id} start`)
+          await this.trawl($job.data.chunk, $job)
         }, 
-        { ...this.options.workerOptions, connection: this.options.adapterOptions.redis }
+        { ...this.options.workerOptions, connection: this.options.adapterOptions.redis, concurrency: 1 }
       )  
-    this.$q.queue.on('active', (...args) => this._on('queue_active', ...args))
-    this.$q.queue.on('completed', (...args) => this._on('queue_completed', ...args))
-    this.$q.queue.on('failed', (...args) => this._on('queue_failed', ...args))
-    this.$q.queue.on('progress', (...args) => this._on('queue_progress', ...args))
-    this.$q.queue.on('waiting', (...args) => this._on('queue_waiting', ...args))
-    this.$q.queue.on('drained', (...args) => this._on('queue_drained', ...args))  
-    this.$q.queue.on('cleaned', (...args) => this._on('queue_cleaned', ...args))
+    this.$q.queue.on('active',      (...args) => this._on('queue_active',     ...args).catch(console.error))
+    this.$q.queue.on('completed',   (...args) => this._on('queue_completed',  ...args).catch(console.error))
+    this.$q.queue.on('failed',      (...args) => this._on('queue_failed',     ...args).catch(console.error))
+    this.$q.queue.on('progress',    (...args) => this._on('queue_progress',   ...args).catch(console.error))
+    this.$q.queue.on('waiting',     (...args) => this._on('queue_waiting',    ...args).catch(console.error))
+    this.$q.queue.on('drained',     (...args) => this._on('queue_drained',    ...args).catch(console.error))  
+    this.$q.queue.on('cleaned',     (...args) => this._on('queue_cleaned',    ...args).catch(console.error))
 
-    this.$q.worker.on('active', (...args) => this._on('worker_active', ...args))
-    this.$q.worker.on('completed', (...args) => this._on('worker_completed', ...args))
-    this.$q.worker.on('failed', (...args) => this._on('worker_failed', ...args))
-    this.$q.worker.on('progress', (...args) => this._on('worker_progress', ...args))
-    this.$q.worker.on('waiting', (...args) => this._on('worker_waiting', ...args))
-    this.$q.worker.on('drained', (...args) => this._on('worker_drained', ...args))
-    this.$q.worker.on('cleaned', (...args) => this._on('worker_cleaned', ...args))
-    this.pause()
+    this.$q.worker.on('active',     (...args) => this._on('worker_active',    ...args).catch(console.error))
+    this.$q.worker.on('completed',  (...args) => this._on('worker_completed', ...args).catch(console.error))
+    this.$q.worker.on('failed',     (...args) => this._on('worker_failed',    ...args).catch(console.error))
+    this.$q.worker.on('progress',   (...args) => this._on('worker_progress',  ...args).catch(console.error))
+    this.$q.worker.on('waiting',    (...args) => this._on('worker_waiting',   ...args).catch(console.error))
+    this.$q.worker.on('drained',    (...args) => this._on('worker_drained',   ...args).catch(console.error))
+    this.$q.worker.on('cleaned',    (...args) => this._on('worker_cleaned',   ...args).catch(console.error))
+    
   }
 
   async updateProgress(progress, $job){
@@ -82,7 +84,6 @@ class BullMqTrawler extends Trawler {
       return
     return this.$q.worker?.[key](...args)
   }
-
 }
 
 export default BullMqTrawler

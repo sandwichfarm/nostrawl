@@ -10,9 +10,11 @@ class NTTrawler extends NTFetcher {
     this.since = {}
   }
 
-  _on(key, ...args){
+  async _on(key, ...args){
     if(this.cb?.[key])
       this.cb[key](...args)
+    if(this?.[`handle_${key}`] && typeof this?.[`handle_${key}`] === 'function')
+      this?.[`handle_${key}`](...args)
   }
 
   on(key, callback){
@@ -28,6 +30,14 @@ class NTTrawler extends NTFetcher {
   on_worker(key, data){
     this.on(`worker_${key}`, data)
     return this
+  }
+
+  handle_worker_drained($job, result){
+    console.log(`queue drained`)
+    if(this.options?.repeatWhenComplete) {
+      console.log(`Resting for ${Math.round(this.options?.restDuration/1000)} seconds and picking up where we left off`)
+      setTimeout( () => this.run(), this.options?.restDuration )
+    }
   }
 
   addFirstJob(fn, target){

@@ -15,6 +15,7 @@
     "nostr-fetch": "0.13.1",
     "nostr-tools": "1.17.0",
     "p-queue": "7.4.1",
+    "promise-deferred": "2.0.4",
     "websocket-polyfill": "0.0.3"
   }
 }
