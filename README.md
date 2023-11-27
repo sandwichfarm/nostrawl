@@ -7,7 +7,7 @@
 
 `nostr-trawl` is a simple tool for persistently fetching and processing filtered events from a set of [Nostr](https://nostr.io) relays.
 
-`nostr-trail` is a wrapper for `nostr-fetch` (with the `nostr-tools` simple-pool adapter) and implements adapters for queuing fetch jobs. 
+`nostr-trawl` is a wrapper for `nostr-fetch` (with the `nostr-tools` simple-pool adapter) and implements adapters for queuing fetch jobs. 
 
 ## Install
 _yarn_
