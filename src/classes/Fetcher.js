@@ -59,13 +59,12 @@ class NTFetcher {
     
         for await (const event of it){ 
           const failedValidation = !this.options.validator(event)
+          this.updateSince(relay, event.created_at)
           if(failedValidation) {
             progress.rejected++
             continue
           }
           await this.options.parser(event, $job)
-          if(event?.created_at)
-            this.updateSince(relay, event.created_at)
           progress.found++
           progress.last_timestamp = this.getSince(relay)
           progress.relay = relay

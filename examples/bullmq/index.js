@@ -15,7 +15,7 @@ const options = {
   restDuration: 60*60*1000,
   strictTimestamps: true,
   relaysPerBatch: 3,
-  since: Math.round(Date.now()/1000-(60*60)),
+  since: Math.round(Date.now()/1000-(60*60*6)),
   nostrFetchOptions: {
     sort: true
   },
