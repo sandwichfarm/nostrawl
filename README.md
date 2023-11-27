@@ -23,7 +23,7 @@ _npm_
 npm install nnostr-crawl
 ```
 ## Example
-There's an example in scripts, for example with yarn: 
+There's an example in scripts, it requires docker. 
 ```
 yarn example
 ```

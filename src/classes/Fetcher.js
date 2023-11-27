@@ -10,10 +10,10 @@ class NTFetcher {
     this.promises = []
     this.defaults = {
       queueName: 'trawlerQueue',
-      sequential: true,
       repeatWhenComplete: false,
       relaysPerBatch: 5,
       restDuration: 60*1000,
+      progressEvery: 1000,
       parser: () => {},
       filters: {},
       since: 0,
@@ -29,7 +29,6 @@ class NTFetcher {
   async run(){
     let i=0
     for await (const chunk of this.chunk_relays()) {
-      console.log(chunk)
       const $job = await this.addJob(i, chunk)
       i++
     }
@@ -37,10 +36,7 @@ class NTFetcher {
   }
 
   async trawl(chunk, $job){
-    console.log(chunk)
-    for (const relay of chunk){
-      console.log(relay)
-      console.log('here')
+    chunk.forEach( async relay => {
       const pool = new SimplePool()
       const fetcher = NostrFetcher.withCustomPool(simplePoolAdapter(pool))
       const since = this.getSince(relay)
@@ -49,6 +45,7 @@ class NTFetcher {
         rejected: 0,
         last_timestamp: 0
       }
+      let lastProgressUpdate = 0
   
       const it = fetcher.allEventsIterator(
         [ relay ],
@@ -62,18 +59,18 @@ class NTFetcher {
           progress.rejected++
           continue
         }
-        if(this.options.sequential === true) 
-          await this.options.parser(event, $job)
-        else 
-          this.options.parser(event, $job)
+        await this.options.parser(event, $job)
         if(event?.created_at)
           this.updateSince(relay, event.created_at)
         progress.found++
         progress.last_timestamp = this.getSince(relay)
         progress.relay = relay
-        this.updateProgress(progress, $job)
+        if(Date.now() - lastProgressUpdate > this.options.progressEvery){
+          this.updateProgress(progress, $job)
+          lastProgressUpdate = Date.now()
+        }
       }
-    }
+    })
   }
 
   chunk_relays(){
@@ -87,17 +84,17 @@ class NTFetcher {
   }
 
   getSince(relay){
-    if(!this.options?.since)
-      return 0
-    if(this.options.since instanceof Number)
-      return this.options.since
-    else if(this.since?.[relay])
+    if(typeof this.since?.[relay] === 'number')
       return this.since[relay]
-    else if(this.options.since instanceof Object)
-      if(this.options.since?.[relay])
+    if(typeof this.options.since === 'number')
+      return this.options.since
+    if(typeof this.options?.since === 'object')
+      if(typeof this.options.since?.[relay] === 'number')
         return this.options.since[relay]
       else
         return 0
+    if(typeof this.options?.since === 'undefined')
+      return 0
   }
 
   updateSince(key, timestamp){
