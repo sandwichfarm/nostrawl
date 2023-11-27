@@ -6,7 +6,7 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "example": "docker compose -f examples/bullmq/docker-compose.yaml up"
+    "example": "docker compose -f examples/bullmq/docker-compose.yaml up --build"
   },
   "dependencies": {
     "@nostr-fetch/adapter-nostr-tools": "0.13.1",

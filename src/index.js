@@ -1,17 +1,17 @@
-import PQueueTrawler from './adapters/PQueueTrawler.js';
-import BullMqTrawler from './adapters/BullMqTrawler.js';  
+import PQueueAdapter from './adapters/PQueueAdapter.js';
+import BullMqAdapter from './adapters/BullMqAdapter.js';  
 
 export const nostrawl = (relays, options) => {
-  const adapter = options.adapter || 'bullmq'
+  console.log('nostrawl()')
   let $adapter
-  switch (adapter) {
+  switch (options?.adapter) {
     case 'bullmq':
-      $adapter = new BullMqTrawler(relays, options)
+      $adapter = new BullMqAdapter(relays, options)
       $adapter.init()
       return $adapter
     case 'pqueue':
     default:
-      $adapter = new PQueueTrawler(relays, options)
+      $adapter = new PQueueAdapter(relays, options)
       $adapter.init()
       return $adapter 
   }

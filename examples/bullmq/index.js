@@ -3,6 +3,8 @@ import dotenv from 'dotenv'
 
 dotenv.config()
 
+
+
 const relays = ["wss://relay.damus.io","wss://nostr-pub.wellorder.net","wss://nostr.mom","wss://nostr.slothy.win","wss://global.relay.red"]
 
 const event_ids = new Set()
@@ -26,10 +28,8 @@ const options = {
       db: process.env.REDIS_DB || 0 
     }
   },
-  queueOptions: {
-    removeOnComplete: true, 
-    removeOnFail: true
-  },
+  workerOptions: {},
+  queueOptions: {},
   parser: async (event) => {
     event_ids.add(event.id)
     // console.log(event.created_at)
@@ -41,11 +41,11 @@ const options = {
   } 
 }
 
-const trawler = nostrawl(relays, options)
+const trawler = nostrawl(relays, options )
 
 trawler
   .on_worker('progress', (job, progress) => console.log(`[@${progress.last_timestamp}] ${progress.found} events found and ${progress.rejected} events rejected from  ${progress.relay}`))
   .on_queue('drained', () => console.log(`queue is empty`))
-  .on_worker('completed', (job) => console.log(`${job.id} completed`))
+  .on_worker('completed', (job) => console.log(`Job #${job.id} completed`))
 
 trawler.run()
