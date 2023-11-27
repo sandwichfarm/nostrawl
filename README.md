@@ -5,7 +5,7 @@
 > 1. an act of fishing with a trawl net or seine.
 > 2. a thorough search.
 
-`nostrawl` is a simple tool for persistently fetching and processing filtered events from a set of [Nostr](https://nostr.io) relays.
+`nostrawl` is a simple tool for persistently fetching and processing filtered events from a set of [nostr](https://github.com/nostr-protocol/) relays.
 
 `nostrawl` is a wrapper for `nostr-fetch` (with the `nostr-tools` simple-pool adapter) and implements adapters for queuing fetch jobs. 
 
