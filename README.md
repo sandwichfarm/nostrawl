@@ -1,5 +1,4 @@
-> early alpha. the example works, but no tests are written yet. Also the PQueueAdapter is not yet implemented. Also, not yet on npm so those install instructions don't work. sns. 
-
+> early alpha. the example works, but no tests are written yet. Also the PQueueAdapter is not yet implemented. Also, not yet on npm so those install instructions don't work.
 # nostrawl 
 > Trawl [/trɔːl/] 
 > 1. an act of fishing with a trawl net or seine.
@@ -10,26 +9,24 @@
 `nostrawl` is a wrapper for `nostr-fetch` (with the `nostr-tools` simple-pool adapter) and implements adapters for queuing fetch jobs. 
 
 ## Install
-_yarn_
 ```
-yarn add nostrawl
+git clone https://github.com/sandwichfarm/nostrawl
+cd nostral
+yarn install
+yarn link nostral
 ```
+_npm package soon_
 
-_pnpm_
-```
-pnpm install nostrawl
-```
+### Run Example
 
-_npm_
-```
-npm install nostrawl
-```
-## Example
-There's an example in scripts, it requires docker. 
+With docker
 ```
 yarn example
 ```
-
+With a local redis instance. Use defaults, or set with envvars (REDIS_HOST, REDIS_PORT, etc)
+```
+node examples/bullmq/index.js
+```
 _Note: This example is for demonstration purposes only, the example will likely hit memory limits if left running too long_
 
 ## Run Tests
