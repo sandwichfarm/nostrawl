@@ -36,8 +36,8 @@ _What tests?_
 I'll write docs once there are tests, both adapters are implemented and there is demand.
 
 ## Queue Adapters
-- `BullMQAdapter`: Persistent queue
-- `PQueueAdapter`: Ephemeral javascript queue
+- `BullMQAdapter`: Redis-based queue adapter
+- `PQueueAdapter`: Process-bound queue adapter
 
 ## Usage 
 
