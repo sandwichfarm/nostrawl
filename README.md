@@ -6,14 +6,14 @@
 
 `nostrawl` is a simple tool for persistently fetching and processing filtered events from a set of [nostr](https://github.com/nostr-protocol/) relays.
 
-`nostrawl` is a wrapper for `nostr-fetch` (with the `nostr-tools` simple-pool adapter) and implements adapters for queuing fetch jobs. 
+`nostrawl` wraps `nostr-fetch` (with the `nostr-tools` simple-pool adapter) and implements adapters for queuing fetch jobs. 
 
 ## Install
 ```
 git clone https://github.com/sandwichfarm/nostrawl
-cd nostral
+cd nostrawl
 yarn install
-yarn link nostral
+yarn link nostrawl
 ```
 _npm package soon_
 
