@@ -11,17 +11,20 @@ class BullMqAdapter extends NTQueue {
 
   async init(){
     this.$q = {}
-    this.queue_init()
+    await this.queue_init()
     this.worker_init()
   }
 
-  queue_init(){
+  async queue_init(){
     console.log('BullMqAdapter:init()')
     if(this.options?.$instance) {
       this.$q.queue = this.options.$instance
     } else {
       this.$q.queue = new Queue(this.options.queueName, this.options.queueOptions)
     }
+
+    await this.$q.queue.drain()
+    await this.$q.queue.obliterate({ force: true })
     
     const qEvents = new QueueEvents(this.$q.queue.name, { connection: this.options.adapterOptions.connection } );
     qEvents.on('active',      (...args) => this._on('queue_active',     ...args).catch(console.error))
@@ -34,7 +37,7 @@ class BullMqAdapter extends NTQueue {
   }
 
   worker_init(){
-    this.$q.worker = new Worker(this.$q.queue.name, async $job =>  await this.trawl($job.data.chunk, $job), this.options.workerOptions)  
+    this.$q.worker = new Worker(this.$q.queue.name, async $job => await this.trawl($job.data.chunk, $job), this.options.workerOptions) 
     this.$q.worker.on('active',     (...args) => this._on('worker_active',    ...args).catch(console.error))
     this.$q.worker.on('completed',  (...args) => this._on('worker_completed', ...args).catch(console.error))
     this.$q.worker.on('failed',     (...args) => this._on('worker_failed',    ...args).catch(console.error))

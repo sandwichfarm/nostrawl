@@ -1,7 +1,14 @@
 import "websocket-polyfill";
+import TimeAgo from 'javascript-time-ago'
+import en from 'javascript-time-ago/locale/en'
+
 import { NostrFetcher } from 'nostr-fetch';
 import { SimplePool } from 'nostr-tools';
 import { simplePoolAdapter } from '@nostr-fetch/adapter-nostr-tools'
+import { open } from 'lmdb';
+
+TimeAgo.addDefaultLocale(en)
+const timeAgo = new TimeAgo('en-US')
 
 class NTTrawler {
   constructor(relays, options) {
@@ -10,9 +17,9 @@ class NTTrawler {
     this.defaults = {
       queueName: 'trawlerQueue',
       repeatWhenComplete: false,
-      relaysPerBatch: 5,
+      relaysPerBatch: 3,
       restDuration: 60*1000,
-      progressEvery: 1000,
+      progressEvery: 5000,
       parser: () => {},
       filters: {},
       since: 0,
@@ -21,13 +28,19 @@ class NTTrawler {
       nostrFetcherOptions: { sort: true },
       adapterOptions: {},
       workerOptions: {},
-      queueOptions: {}
+      queueOptions: {},
+      cache: {
+        enabled: true,
+        path: './cache',
+      }
     }
     this.options = {...this.defaults, ...options}
+    this.cache = null
   }
 
   async run(){
     let i=0
+    this.openCache();
     for (const chunk of this.chunk_relays()) {
       const $job = await this.addJob(i, chunk)
       i++
@@ -35,9 +48,32 @@ class NTTrawler {
     this.resume()
   }
 
+  async countEvents(relay){
+    let results = [...this.cache.getRange()]
+    if(results.length === 0) complete = true
+    results = results.filter(({ key, value }) => key.startsWith(`has:`))
+    return results.length
+  }
+
+  async countTimestamps(relay){
+    let events = [...this.cache.getRange()]
+    
+    events = events.filter(({ key, value }) => key.startsWith(`has:`))
+    return events.length
+  }
+
+  async openCache(){
+    if(!this.options.cache.enabled || !this.options.cache?.path) return
+    this.cache = open({
+      path: this.options.cache.path,
+      compression: true
+    });
+    console.log('cache opened')
+  }
+
   async trawl(chunk, $job){
     console.log(`starting job #${$job.id} with ${chunk.length} relays`)
-    const promises = chunk.map((relay, index) => new Promise(async (resolve) => {
+    const promises = chunk.map((relay, index) => new Promise(async (resolve, reject) => {
       try {
         const pool = new SimplePool()
         const fetcher = NostrFetcher.withCustomPool(simplePoolAdapter(pool))
@@ -46,9 +82,13 @@ class NTTrawler {
           found: 0,
           rejected: 0,
           last_timestamp: 0,
+          total: await this.countEvents(),
           relay: relay
         }
+
         let lastProgressUpdate = 0
+
+        console.log(`trawling ${relay} starting from ${timeAgo.format(new Date(since*1000))}`)
     
         const it = fetcher.allEventsIterator(
           [ relay ],
@@ -58,22 +98,27 @@ class NTTrawler {
         )
     
         for await (const event of it){ 
-          const passedValidation = this.options?.validator ? this.options.validator(event) : true
-          const doUpdateProgress = Date.now() - lastProgressUpdate > this.options.progressEvery
+          
+          const passedValidation = this.options?.validator ? this.options.validator(this, event) : true
+          const doUpdateProgress = () => Date.now() - lastProgressUpdate > this.options.progressEvery
           progress.last_timestamp = event.created_at
           this.updateSince(relay, progress.last_timestamp)
           if(!passedValidation) {
             progress.rejected++
-            if(doUpdateProgress) {
+            if(doUpdateProgress()) {
+              lastProgressUpdate = Date.now()
+              progress.total = await this.countEvents()
               this.updateProgress(progress, $job)
             }
             continue
           }
-          await this.options.parser(event, $job)
+          
+          await this.options.parser(this, event, $job)
           progress.found++
-          if(doUpdateProgress){
-            this.updateProgress(progress, $job)
+          if(doUpdateProgress()){
             lastProgressUpdate = Date.now()
+            progress.total = await this.countEvents()
+            this.updateProgress(progress, $job)
           }
         }
         resolve(this.getSince(relay))
@@ -96,8 +141,9 @@ class NTTrawler {
   }
 
   getSince(relay){
-    if(typeof this.since?.[relay] === 'number')
-      return this.since[relay]
+    const cached = this.cache.get(`lastUpdate:${relay}`)
+    if(typeof cached === 'number')
+      return cached
     if(typeof this.options.since === 'number')
       return this.options.since
     if(typeof this.options?.since === 'object')
@@ -109,8 +155,8 @@ class NTTrawler {
       return 0
   }
 
-  updateSince(key, timestamp){
-    this.since[key] = timestamp
+  async updateSince(key, timestamp){
+    await this.cache.put(`lastUpdate:${key}`, timestamp)
   }
 }
 

@@ -45,10 +45,6 @@ class NTQueue extends NTTrawler {
     
   }
 
-  addJob(relay, fn){
-    this.promises.push()
-  }
-
   pause(key){
     this.$q.pause(key)
   }
