@@ -1,4 +1,4 @@
-> early alpha. the example works, but no tests are written yet. Also the PQueueAdapter is not yet implemented. Also, not yet on npm so those install instructions don't work.
+> early alpha. the example works, but no tests are written yet. Also the PQueueAdapter is not yet implemented. 
 # nostrawl 
 > Trawl [/trɔːl/] 
 > 1. an act of fishing with a trawl net or seine.
