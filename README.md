@@ -10,10 +10,7 @@
 
 ## Install
 ```
-git clone https://github.com/sandwichfarm/nostrawl
-cd nostrawl
-yarn install
-yarn link nostrawl
+pnpm add @nostrwatch/nostrawl
 ```
 _npm package soon_
 
