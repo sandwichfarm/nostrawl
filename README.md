@@ -18,7 +18,7 @@ _npm package soon_
 
 With docker
 ```
-yarn example
+pnpmn example
 ```
 With a local redis instance. Use defaults, or set with envvars (REDIS_HOST, REDIS_PORT, etc)
 ```
