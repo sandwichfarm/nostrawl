@@ -10,7 +10,7 @@
 
 ## Install
 ```
-pnpm add @nostrwatch/nostrawl
+pnpm install @nostrwatch/nostrawl
 ```
 _npm package soon_
 
@@ -18,7 +18,7 @@ _npm package soon_
 
 With docker
 ```
-pnpmn example
+pnp run example
 ```
 With a local redis instance. Use defaults, or set with envvars (REDIS_HOST, REDIS_PORT, etc)
 ```
