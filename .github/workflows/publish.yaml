@@ -3,11 +3,7 @@ on:
   workflow_dispatch: 
   push:
     branches:
-      - 'next'
-    paths:
-      - 'packages/**'
-      - 'package.json'
-      - '.github/workflows/publish-package.yml'
+      - 'main'
 
 jobs:
   publish:  
