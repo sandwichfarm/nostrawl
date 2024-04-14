@@ -50,7 +50,6 @@ class NTTrawler {
 
   async countEvents(relay){
     let results = [...this.cache.getRange()]
-    if(results.length === 0) complete = true
     results = results.filter(({ key, value }) => key.startsWith(`has:`))
     return results.length
   }

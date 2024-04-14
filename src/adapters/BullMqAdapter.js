@@ -23,8 +23,10 @@ class BullMqAdapter extends NTQueue {
       this.$q.queue = new Queue(this.options.queueName, this.options.queueOptions)
     }
 
+    // await this.$q.queue.pause()
     await this.$q.queue.drain()
     await this.$q.queue.obliterate({ force: true })
+    // await this.$q.queue.resume()
     
     const qEvents = new QueueEvents(this.$q.queue.name, { connection: this.options.adapterOptions.connection } );
     qEvents.on('active',      (...args) => this._on('queue_active',     ...args).catch(console.error))
