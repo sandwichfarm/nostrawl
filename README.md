@@ -6,7 +6,7 @@
 
 `nostrawl` is a simple tool for persistently fetching and processing filtered events from a set of [nostr](https://github.com/nostr-protocol/) relays.
 
-`nostrawl` wraps `nostr-fetch` (with the `nostr-tools` simple-pool adapter) and implements adapters for queuing fetch jobs. 
+`nostrawl` wraps `nostr-fetch` (with the `nostr-tools` simple-pool adapter) and implements adapters for queuing fetch jobs. Implements an LMDB cache that can be accessed via provided `parser` and `validator` functions. 
 
 ## Install
 ```
@@ -45,8 +45,6 @@ dotenv.config()
 
 const relays = ["wss://relay.damus.io","wss://nostr-pub.wellorder.net","wss://nostr.mom","wss://nostr.slothy.win","wss://global.relay.red"]
 
-const event_ids = new Set()
-
 const options = {
   filters: { kinds: [3] },
   adapter: 'bullmq',
@@ -71,11 +69,10 @@ const options = {
     removeOnFail: true
   },
   parser: async (event) => {
-    event_ids.add(event.id)
-    // console.log(event.created_at)
+    this.cache.put(`found:${event.id}`)
   },
   validator: (event) => {
-    if(event_ids.has(event.id))
+    if(this.cache.get(`found:${event.id`))
       return false 
     return true
   } 
