@@ -18,7 +18,7 @@ _npm package soon_
 
 With docker
 ```
-pnp run example
+pnpm run example
 ```
 With a local redis instance. Use defaults, or set with envvars (REDIS_HOST, REDIS_PORT, etc)
 ```
