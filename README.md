@@ -68,11 +68,15 @@ const options = {
     removeOnComplete: true, 
     removeOnFail: true
   },
-  parser: async (event) => {
-    this.cache.put(`found:${event.id}`)
+  //the cache is used internal to remember the last time 
+  //a relay was filtered against, so it can resume from
+  //there later. It uses to the key `lastUpdate:${timestamp}`
+  //so be weary of that. 
+  parser: async ($trawler, event) => {
+    $trawler.cache.put(`found:${event.id}`)
   },
-  validator: (event) => {
-    if(this.cache.get(`found:${event.id`))
+  validator: ($trawler, event) => {
+    if($trawler.cache.get(`found:${event.id`))
       return false 
     return true
   } 
