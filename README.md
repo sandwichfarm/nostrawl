@@ -6,7 +6,7 @@
 
 `nostrawl` is a simple tool for persistently fetching and processing filtered events from a set of [nostr](https://github.com/nostr-protocol/) relays.
 
-`nostrawl` wraps `nostr-fetch` (with the `nostr-tools` simple-pool adapter) and implements adapters for queuing fetch jobs. 
+`nostrawl` wraps `nostr-fetch` (with the `nostr-tools` simple-pool adapter) and implements adapters for queuing fetch jobs. Implements an LMDB cache that can be accessed via provided `parser` and `validator` functions. 
 
 ## Install
 ```
@@ -18,7 +18,7 @@ _npm package soon_
 
 With docker
 ```
-pnp run example
+pnpm run example
 ```
 With a local redis instance. Use defaults, or set with envvars (REDIS_HOST, REDIS_PORT, etc)
 ```
@@ -45,8 +45,6 @@ dotenv.config()
 
 const relays = ["wss://relay.damus.io","wss://nostr-pub.wellorder.net","wss://nostr.mom","wss://nostr.slothy.win","wss://global.relay.red"]
 
-const event_ids = new Set()
-
 const options = {
   filters: { kinds: [3] },
   adapter: 'bullmq',
@@ -70,12 +68,15 @@ const options = {
     removeOnComplete: true, 
     removeOnFail: true
   },
-  parser: async (event) => {
-    event_ids.add(event.id)
-    // console.log(event.created_at)
+  //the cache is used internal to remember the last time 
+  //a relay was filtered against, so it can resume from
+  //there later. It uses to the key `lastUpdate:${timestamp}`
+  //so be weary of that. 
+  parser: async ($trawler, event) => {
+    $trawler.cache.put(`found:${event.id}`)
   },
-  validator: (event) => {
-    if(event_ids.has(event.id))
+  validator: ($trawler, event) => {
+    if($trawler.cache.get(`found:${event.id`))
       return false 
     return true
   } 
