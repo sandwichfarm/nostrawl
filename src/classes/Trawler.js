@@ -7,11 +7,14 @@ import { SimplePool } from 'nostr-tools';
 import { simplePoolAdapter } from '@nostr-fetch/adapter-nostr-tools'
 import { open } from 'lmdb';
 
+import { mergeDeepRight } from 'ramda';
+
 TimeAgo.addDefaultLocale(en)
 const timeAgo = new TimeAgo('en-US')
 
 class NTTrawler {
   constructor(relays, options) {
+    this.queue = null
     this.relays = relays
     this.promises = []
     this.defaults = {
@@ -34,47 +37,58 @@ class NTTrawler {
         path: './cache',
       }
     }
-    this.options = {...this.defaults, ...options}
+    this.options = mergeDeepRight(this.defaults, options )
     this.cache = null
   }
 
   async run(){
+    //console.log('NTTrawler.run()')
     let i=0
-    this.openCache();
+    await this.openCache();
+    this.pause()
     for (const chunk of this.chunk_relays()) {
+      //console.log('iterating chunk', chunk)
       const $job = await this.addJob(i, chunk)
+      //console.log('addJob', $job?.id)
       i++
     }
+    const counts = await this.$q.queue.getJobCounts('completed', 'delayed', 'active', 'waiting-children', 'prioritized', 'paused', 'repeat', 'wait', 'completed', 'failed');
+    //console.log('counts', counts)
     this.resume()
   }
 
   async countEvents(relay){
+    //console.log('NTTrawler.countEvents()')
     let results = [...this.cache.getRange()]
-    results = results.filter(({ key, value }) => key.startsWith(`has:`))
+    results = results.filter(({ key, value }) => typeof key === 'string' && key.startsWith(`has:`))
     return results.length
   }
 
   async countTimestamps(relay){
+    //console.log('NTTrawler.countTimestamps()')
     let events = [...this.cache.getRange()]
     
-    events = events.filter(({ key, value }) => key.startsWith(`has:`))
+    events = events.filter(({ key, value }) => typeof key === 'string' && key?.startsWith(`has:`))
     return events.length
   }
 
   async openCache(){
+    console.log('NTTrawler.openCache()')
     if(!this.options.cache.enabled || !this.options.cache?.path) return
     this.cache = open({
       path: this.options.cache.path,
       compression: true
     });
-    console.log('cache opened')
+    this?.options?.after_cacheOpen(this.cache)
+    //console.log('cache opened')
   }
 
   async trawl(chunk, $job){
     console.log(`starting job #${$job.id} with ${chunk.length} relays`)
+    // process.exit()
+    const pool = new SimplePool()
     const promises = chunk.map((relay, index) => new Promise(async (resolve, reject) => {
       try {
-        const pool = new SimplePool()
         const fetcher = NostrFetcher.withCustomPool(simplePoolAdapter(pool))
         const since = this.getSince(relay)
         const progress = {
@@ -87,7 +101,7 @@ class NTTrawler {
 
         let lastProgressUpdate = 0
 
-        console.log(`trawling ${relay} starting from ${timeAgo.format(new Date(since*1000))}`)
+        //console.log(`trawling ${relay} starting from ${timeAgo.format(new Date(since*1000))}`)
     
         const it = fetcher.allEventsIterator(
           [ relay ],
@@ -97,7 +111,6 @@ class NTTrawler {
         )
     
         for await (const event of it){ 
-          
           const passedValidation = this.options?.validator ? this.options.validator(this, event) : true
           const doUpdateProgress = () => Date.now() - lastProgressUpdate > this.options.progressEvery
           progress.last_timestamp = event.created_at
@@ -130,16 +143,21 @@ class NTTrawler {
   }
 
   chunk_relays(){
+    //console.log('chunk_relays', this.relays.length)
     if (this.relays.length === 0) 
         return [];
+    if(this.relays.length < this.options.relaysPerBatch)
+      return this.relays;
     const chunks = [];
     for(let i = 0; i < this.relays.length; i += this.options.relaysPerBatch){
-        chunks.push(this.relays.slice(i, i + this.options.relaysPerBatch));
+      //console.log('chunk', i, i + this.options.relaysPerBatch)
+      chunks.push(this.relays.slice(i, i + this.options.relaysPerBatch));
     }
     return chunks;
   }
 
   getSince(relay){
+    //console.log('getSince', relay)
     const cached = this.cache.get(`lastUpdate:${relay}`)
     if(typeof cached === 'number')
       return cached

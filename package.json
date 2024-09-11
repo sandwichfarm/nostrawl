@@ -1,6 +1,6 @@
 {
   "name": "@nostrwatch/nostrawl",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "A nostr library for continously retrieving events from nostr relays based on a set of filters.",
   "main": "src/index.js",
   "license": "MIT",
@@ -19,6 +19,7 @@
     "nostr-tools": "1.17.0",
     "p-queue": "7.4.1",
     "promise-deferred": "2.0.4",
+    "ramda": "0.30.1",
     "websocket-polyfill": "0.0.3"
   }
 }

@@ -5,18 +5,19 @@ import NTQueue from '../classes/Queue.js'
 class BullMqAdapter extends NTQueue {
   constructor(relays, options) {
     super(relays, options)
-    console.log('BullMqAdapter()')
+    // console.log('BullMqAdapter()')
     this.opts(options)
   }
 
   async init(){
+    // console.log('BullMqAdapter():init()')
     this.$q = {}
     await this.queue_init()
     this.worker_init()
   }
 
   async queue_init(){
-    console.log('BullMqAdapter:init()')
+    // console.log('BullMqAdapter:queue_init()')
     if(this.options?.$instance) {
       this.$q.queue = this.options.$instance
     } else {
@@ -24,9 +25,14 @@ class BullMqAdapter extends NTQueue {
     }
 
     // await this.$q.queue.pause()
-    await this.$q.queue.drain()
-    await this.$q.queue.obliterate({ force: true })
+    // console.log('draining queue');
+    // await this.$q.queue.drain();
+    // console.log('queue drained');
+    // console.log('obliterating queue');
+    // await this.$q.queue.obliterate({ force: true });
+    // console.log('queue obliterated');
     // await this.$q.queue.resume()
+    
     
     const qEvents = new QueueEvents(this.$q.queue.name, { connection: this.options.adapterOptions.connection } );
     qEvents.on('active',      (...args) => this._on('queue_active',     ...args).catch(console.error))
@@ -89,37 +95,45 @@ class BullMqAdapter extends NTQueue {
   }
 
   async updateProgress(progress, $job){
+    // console.log('updateProgress()', progress)
     await $job.updateProgress(progress)
   }
 
   async addJob(index, chunk){
+    // console.log(`BullMQAdapter.addJob()`, 'adding job', index, chunk)  
     return this.$q.queue.add(`chunk #${index}`, { chunk })
   }
 
   async pause(){
+    // console.log('pausing')
     await this.$q.queue.pause()
   }
 
   async resume(){
+    // console.log('resuming')
     await this.$q.queue.resume()
   }
 
   async clean(){
+    // console.log('cleaning')
     await this.$q.queue.clean(0, 0, 'completed')
   }
 
   async close(){
+    // console.log('closing')
     await this.$q.queue.close()
     await this.$q.worker.close()
   }
 
   queueApi(key, ...args){
+    console.log('queueApi()', key, args)
     if(!(this.$q.queue?.[key] instanceof Function))
       return 
     return this.$q.queue?.[key](...args)
   }
   
   jobApi(key, ...args){
+    // console.log('jobApi()', key, args)
     if(!(this.$q.worker?.[key] instanceof Function))
       return
     return this.$q.worker?.[key](...args)
