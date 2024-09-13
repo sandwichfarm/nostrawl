@@ -79,8 +79,8 @@ class NTTrawler {
       path: this.options.cache.path,
       compression: true
     });
-    this?.options?.after_cacheOpen(this.cache)
-    //console.log('cache opened')
+    if(this?.options && this.options instanceof Function)
+      this?.options?.after_cacheOpen(this.cache)
   }
 
   async trawl(chunk, $job){
