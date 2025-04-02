@@ -143,7 +143,7 @@ export default class NTTrawler extends EventEmitter {
         for await (const event of it) {
           const passedValidation = this.options?.validator ? this.options.validator(this, event) : true;
           const doUpdateProgress = () => Date.now() - lastProgressUpdate > (this.options.progressEvery ?? 5000);
-          if(progress.highest_timestamp > event.created_at) {
+          if(progress.highest_timestamp < event.created_at) {
             progress.highest_timestamp = event.created_at;
           }
           
