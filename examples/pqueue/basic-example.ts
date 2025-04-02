@@ -1,5 +1,6 @@
 import { nostrawl } from '../../src';
 import { TrawlerOptions } from '../../src/types';
+import { LogLevel } from '../../src/utils';
 
 /**
  * Basic example demonstrating the usage of the PQueue adapter
@@ -7,7 +8,8 @@ import { TrawlerOptions } from '../../src/types';
  * This example shows how to:
  * 1. Configure the PQueue adapter with custom options
  * 2. Set up event handlers for queue events and nostr events
- * 3. Run the trawler with the PQueue adapter
+ * 3. Configure logging with different log levels
+ * 4. Run the trawler with the PQueue adapter
  */
 async function main() {
   console.log('Starting PQueue example...');
@@ -23,10 +25,31 @@ async function main() {
 
   console.log(`Using ${relays.length} relays:`, relays);
 
+  // Get log level from command line arguments, default to INFO
+  const logLevelArg = process.argv.find(arg => arg.startsWith('--log-level='));
+  let logLevel = LogLevel.INFO;
+  
+  if (logLevelArg) {
+    const level = logLevelArg.split('=')[1]?.toUpperCase();
+    switch (level) {
+      case 'SILENT': logLevel = LogLevel.SILENT; break;
+      case 'ERROR': logLevel = LogLevel.ERROR; break;
+      case 'WARN': logLevel = LogLevel.WARN; break; 
+      case 'INFO': logLevel = LogLevel.INFO; break;
+      case 'DEBUG': logLevel = LogLevel.DEBUG; break;
+      case 'TRACE': logLevel = LogLevel.TRACE; break;
+    }
+  }
+  
+  console.log(`Using log level: ${LogLevel[logLevel]}`);
+
   // Configure the PQueue adapter options
   const options: TrawlerOptions = {
     // Specify the adapter to use
     adapter: 'pqueue',
+    
+    // Set the log level
+    logLevel,
     
     // PQueue specific options
     adapterOptions: {
@@ -59,7 +82,10 @@ async function main() {
   // Set up event handlers for receiving nostr events
   // This is the recommended way to handle events (easier than using parser)
   trawler.on('event', (event) => {
-    console.log(event.id);
+    console.log(`Received event: ${event.id}`);
+    console.log(`From: ${event.pubkey.slice(0, 8)}... | Kind: ${event.kind}`);
+    console.log(`Content: ${event.content.slice(0, 80)}${event.content.length > 80 ? '...' : ''}`);
+    console.log('-'.repeat(80));
   });
 
   // Track progress
@@ -149,6 +175,7 @@ async function main() {
 
 // Run the example
 console.log('Starting PQueue example script...');
+console.log('Log level can be set with --log-level=<LEVEL> where level is one of: SILENT, ERROR, WARN, INFO, DEBUG, TRACE');
 main().catch((error) => {
   console.error('Fatal error:', error);
   process.exit(1);

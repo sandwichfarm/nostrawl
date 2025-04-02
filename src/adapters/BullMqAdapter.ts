@@ -1,6 +1,7 @@
 import { Queue, QueueEvents, Worker } from 'bullmq';
 import NTQueue from '../classes/Queue.js'
 import { TrawlerOptions, Progress } from '../types.js';
+import { LogLevel } from '../utils/Logger';
 
 interface BullMQInstance {
   queue: Queue;
@@ -32,49 +33,52 @@ class BullMqAdapter extends NTQueue {
 
   constructor(relays: string[], options: BullMQTrawlerOptions) {
     super(relays, options);
-    console.log('BullMqAdapter()');
+    // Create a child logger
+    this.logger = this.logger.child('bullmq');
+    this.logger.info('BullMqAdapter initialized');
     this.options = { ...this.options, ...options };
     this.opts(this.options);
   }
 
   async init(): Promise<void> {
+    this.logger.info('Initializing BullMqAdapter');
     this.$q = {};
     await this.queue_init();
     this.worker_init();
   }
 
   private async queue_init(): Promise<void> {
-    console.log('BullMqAdapter:init()');
+    this.logger.debug('Initializing queue');
     if (this.options?.$instance) {
       this.$q.queue = this.options.$instance.queue;
     } else {
       this.$q.queue = new Queue(this.options.queueName || 'nostr', this.options.queueOptions);
     }
 
-    console.log('obliterating queue');
+    this.logger.debug('Obliterating queue');
     await (this.$q.queue as Queue).obliterate({ force: true });
-    console.log('queue obliterated');
+    this.logger.debug('Queue obliterated');
     
     const qEvents = new QueueEvents(this.$q.queue.name, { connection: this.options.adapterOptions?.connection });
-    qEvents.on('active', (...args: any[]) => this._on('queue_active', ...args).catch(console.error));
-    qEvents.on('completed', (...args: any[]) => this._on('queue_completed', ...args).catch(console.error));
-    qEvents.on('failed', (...args: any[]) => this._on('queue_failed', ...args).catch(console.error));
-    qEvents.on('progress', (...args: any[]) => this._on('queue_progress', ...args).catch(console.error));
-    qEvents.on('waiting', (...args: any[]) => this._on('queue_waiting', ...args).catch(console.error));
-    qEvents.on('drained', (...args: any[]) => this._on('queue_drained', ...args).catch(console.error));
-    qEvents.on('cleaned', (...args: any[]) => this._on('queue_cleaned', ...args).catch(console.error));
+    qEvents.on('active', (...args: any[]) => this._on('queue_active', ...args).catch(err => this.logger.error('Error in queue_active handler', err)));
+    qEvents.on('completed', (...args: any[]) => this._on('queue_completed', ...args).catch(err => this.logger.error('Error in queue_completed handler', err)));
+    qEvents.on('failed', (...args: any[]) => this._on('queue_failed', ...args).catch(err => this.logger.error('Error in queue_failed handler', err)));
+    qEvents.on('progress', (...args: any[]) => this._on('queue_progress', ...args).catch(err => this.logger.error('Error in queue_progress handler', err)));
+    qEvents.on('waiting', (...args: any[]) => this._on('queue_waiting', ...args).catch(err => this.logger.error('Error in queue_waiting handler', err)));
+    qEvents.on('drained', (...args: any[]) => this._on('queue_drained', ...args).catch(err => this.logger.error('Error in queue_drained handler', err)));
+    qEvents.on('cleaned', (...args: any[]) => this._on('queue_cleaned', ...args).catch(err => this.logger.error('Error in queue_cleaned handler', err)));
   }
 
   private worker_init(): void {
-    console.log(`worker_init`)
+    this.logger.debug('Initializing worker');
     this.$q.worker = new Worker(this.$q.queue.name, async ($job: any) => await this.trawl($job.data.chunk, $job), this.options.workerOptions);
-    this.$q.worker.on('active', (...args: any[]) => this._on('worker_active', ...args).catch(console.error));
-    this.$q.worker.on('completed', (...args: any[]) => this._on('worker_completed', ...args).catch(console.error));
-    this.$q.worker.on('failed', (...args: any[]) => this._on('worker_failed', ...args).catch(console.error));
-    this.$q.worker.on('progress', (...args: any[]) => this._on('worker_progress', ...args).catch(console.error));
-    this.$q.worker.on('waiting', (...args: any[]) => this._on('worker_waiting', ...args).catch(console.error));
-    this.$q.worker.on('drained', (...args: any[]) => this._on('worker_drained', ...args).catch(console.error));
-    this.$q.worker.on('cleaned', (...args: any[]) => this._on('worker_cleaned', ...args).catch(console.error));
+    this.$q.worker.on('active', (...args: any[]) => this._on('worker_active', ...args).catch(err => this.logger.error('Error in worker_active handler', err)));
+    this.$q.worker.on('completed', (...args: any[]) => this._on('worker_completed', ...args).catch(err => this.logger.error('Error in worker_completed handler', err)));
+    this.$q.worker.on('failed', (...args: any[]) => this._on('worker_failed', ...args).catch(err => this.logger.error('Error in worker_failed handler', err)));
+    this.$q.worker.on('progress', (...args: any[]) => this._on('worker_progress', ...args).catch(err => this.logger.error('Error in worker_progress handler', err)));
+    this.$q.worker.on('waiting', (...args: any[]) => this._on('worker_waiting', ...args).catch(err => this.logger.error('Error in worker_waiting handler', err)));
+    this.$q.worker.on('drained', (...args: any[]) => this._on('worker_drained', ...args).catch(err => this.logger.error('Error in worker_drained handler', err)));
+    this.$q.worker.on('cleaned', (...args: any[]) => this._on('worker_cleaned', ...args).catch(err => this.logger.error('Error in worker_cleaned handler', err)));
   }
 
   private opts(options: BullMQTrawlerOptions): void {
@@ -115,36 +119,36 @@ class BullMqAdapter extends NTQueue {
   }
 
   async updateProgress(progress: Progress, $job: any): Promise<void> {
-    console.log(`updateProgress(${progress.found}/${progress.total})`);
+    this.logger.debug(`Progress update: ${progress.found}/${progress.total} (${(progress.found/progress.total*100).toFixed(1)}%)`);
     await $job.updateProgress(progress.found / progress.total * 100);
   }
 
   async addJob(index: number, chunk: any): Promise<any> {
-    console.log(`addJob(${index})`);
+    this.logger.debug(`Adding job #${index} with ${chunk.length} relays`);
     if (!this.$q?.queue) throw new Error('Queue not initialized');
     return (this.$q.queue as Queue).add(`chunk #${index}`, { chunk });
   }
 
   async pause(): Promise<void> {
-    console.log(`pause()`);
+    this.logger.info('Pausing queue');
     if (!this.$q?.queue) throw new Error('Queue not initialized');
     await (this.$q.queue as Queue).pause();
   }
 
   async resume(): Promise<void> {
-    console.log(`resume()`);
+    this.logger.info('Resuming queue');
     if (!this.$q?.queue) throw new Error('Queue not initialized');
     await (this.$q.queue as Queue).resume();
   }
 
   async clean(): Promise<void> {
-    console.log(`clean()`);
+    this.logger.info('Cleaning queue');
     if (!this.$q?.queue) throw new Error('Queue not initialized');
     await (this.$q.queue as Queue).clean(0, 0, 'completed');
   }
 
   async close(): Promise<void> {
-    console.log(`close()`);
+    this.logger.info('Closing queue and worker');
     if (!this.$q?.queue) throw new Error('Queue not initialized');
     if (!this.$q?.worker) throw new Error('Worker not initialized');
     await (this.$q.queue as Queue).close();
@@ -152,6 +156,7 @@ class BullMqAdapter extends NTQueue {
   }
 
   queueApi(key: string, ...args: any[]): any {
+    this.logger.debug(`Calling queue API method: ${key}`);
     if (!this.$q?.queue) throw new Error('Queue not initialized');
     const queue = this.$q.queue as QueueWithMethods;
     if (!(queue[key] instanceof Function)) return;
@@ -159,6 +164,7 @@ class BullMqAdapter extends NTQueue {
   }
 
   jobApi(key: string, ...args: any[]): any {
+    this.logger.debug(`Calling worker API method: ${key}`);
     if (!this.$q?.worker) throw new Error('Worker not initialized');
     const worker = this.$q.worker as WorkerWithMethods;
     if (!(worker[key] instanceof Function)) return;

@@ -8,6 +8,7 @@ import { open } from 'lmdb';
 import { mergeDeepRight } from 'ramda';
 import { TrawlerOptions, Progress } from '../types';
 import { EventEmitter } from 'events';
+import { logger, Logger, LogLevel } from '../utils';
 
 TimeAgo.addDefaultLocale(en);
 const timeAgo = new TimeAgo('en-US');
@@ -19,6 +20,7 @@ export default class NTTrawler extends EventEmitter {
   protected defaults: TrawlerOptions;
   protected options: TrawlerOptions;
   protected cache: ReturnType<typeof open> | null;
+  protected logger: Logger;
 
   constructor(relays: string[], options: Partial<TrawlerOptions> = {}) {
     super();
@@ -43,23 +45,41 @@ export default class NTTrawler extends EventEmitter {
         enabled: true,
         path: './cache',
       },
+      logLevel: LogLevel.INFO,
       parser: async () => {}
     };
     this.options = mergeDeepRight(this.defaults, options) as TrawlerOptions;
     this.cache = null;
+    
+    // Initialize logger with provided log level or default
+    this.logger = logger.child(this.options.queueName || 'trawler');
+    if (this.options.logLevel !== undefined) {
+      this.logger.setLevel(this.options.logLevel);
+    }
+    
     if (this.relays.length < (this.options.relaysPerBatch ?? 3)) {
       this.options.relaysPerBatch = this.relays.length;
     }
+    
+    this.logger.debug('Trawler initialized', { 
+      relays: this.relays.length,
+      adapter: this.options.adapter,
+      cacheEnabled: this.options.cache?.enabled
+    });
   }
 
   async run(): Promise<void> {
+    this.logger.info('Starting trawl run');
     let i = 0;
     await this.openCache();
     this.pause();
+    this.logger.debug('Adding jobs for relay chunks');
     for (const chunk of this.chunk_relays()) {
+      this.logger.trace(`Adding job ${i} for ${chunk.length} relays`, chunk);
       const $job = await this.addJob(i, chunk);
       i++;
     }
+    this.logger.info(`Added ${i} jobs to the queue`);
     this.resume();
   }
 
@@ -78,20 +98,29 @@ export default class NTTrawler extends EventEmitter {
   }
 
   async openCache(): Promise<void> {
-    if (!this.options.cache?.enabled || !this.options.cache?.path) return;
+    if (!this.options.cache?.enabled || !this.options.cache?.path) {
+      this.logger.debug('Cache disabled, skipping');
+      return;
+    }
+    
+    this.logger.debug(`Opening cache at ${this.options.cache.path}`);
     this.cache = open({
       path: this.options.cache.path,
       compression: true
     });
+    
     if (this.options?.after_cacheOpen instanceof Function) {
+      this.logger.debug('Running after_cacheOpen callback');
       this.options.after_cacheOpen(this.cache);
     }
   }
 
   async trawl(chunk: string[], $job: any): Promise<void> {
+    this.logger.info(`Trawling ${chunk.length} relays`, chunk);
     const pool = new SimplePool();
     const promises = chunk.map((relay) => new Promise(async (resolve, reject) => {
       try {
+        this.logger.debug(`Setting up fetch for relay: ${relay}`);
         const fetcher = NostrFetcher.withCustomPool(simplePoolAdapter(pool));
         const since = this.getSince(relay);
         const progress: Progress = {
@@ -102,6 +131,7 @@ export default class NTTrawler extends EventEmitter {
           relay: relay
         };
 
+        this.logger.debug(`Starting with timestamp: ${since} for relay: ${relay}`);
         let lastProgressUpdate = 0;
 
         const it = fetcher.allEventsIterator(
@@ -115,7 +145,9 @@ export default class NTTrawler extends EventEmitter {
           const doUpdateProgress = () => Date.now() - lastProgressUpdate > (this.options.progressEvery ?? 5000);
           progress.last_timestamp = event.created_at;
           this.updateSince(relay, progress.last_timestamp);
+          
           if (!passedValidation) {
+            this.logger.trace(`Event ${event.id} failed validation`, { relay });
             progress.rejected++;
             if (doUpdateProgress()) {
               lastProgressUpdate = Date.now();
@@ -126,6 +158,7 @@ export default class NTTrawler extends EventEmitter {
           }
 
           // Emit the event and call the parser for backward compatibility
+          this.logger.debug(`Received valid event ${event.id} from ${relay}`);
           this.emit('event', event);
           if (this.options.parser) {
             await this.options.parser(this, event, $job);
@@ -138,26 +171,40 @@ export default class NTTrawler extends EventEmitter {
             await this.updateProgress(progress, $job);
           }
         }
+        
+        this.logger.info(`Completed fetch for ${relay}`, {
+          found: progress.found,
+          rejected: progress.rejected,
+          last_timestamp: progress.last_timestamp
+        });
+        
         resolve(this.getSince(relay));
       } catch (error) {
-        console.error('Error', error);
+        this.logger.error(`Error trawling relay: ${relay}`, error);
         this.emit('error', error);
         reject(error);
       }
     }));
+    
+    this.logger.debug(`Waiting for all ${promises.length} relay promises to settle`);
     await Promise.allSettled(promises);
+    this.logger.info('Trawl completed for all relays in chunk');
   }
 
   chunk_relays(): string[][] {
     if (this.relays.length === 0) return [];
     const batchSize = this.options.relaysPerBatch ?? 3;
     if (this.relays.length <= batchSize) {
+      this.logger.debug(`Creating single chunk for ${this.relays.length} relays`);
       return [this.relays];
     }
+    
     const chunks: string[][] = [];
     for (let i = 0; i < this.relays.length; i += batchSize) {
       chunks.push(this.relays.slice(i, i + batchSize));
     }
+    
+    this.logger.debug(`Created ${chunks.length} relay chunks of size ${batchSize}`);
     return chunks;
   }
 
@@ -178,19 +225,28 @@ export default class NTTrawler extends EventEmitter {
 
   async updateProgress(progress: Progress, $job: any): Promise<void> {
     // Emit progress event
+    this.logger.debug(`Progress update for ${progress.relay}`, {
+      found: progress.found,
+      rejected: progress.rejected,
+      last_timestamp: progress.last_timestamp
+    });
+    
     this.emit('progress', progress);
     // Implementation for queue-specific progress updates will be handled in derived classes
   }
 
   pause(): void {
+    this.logger.info('Pausing trawler');
     // Implementation depends on the specific queue implementation
   }
 
   resume(): void {
+    this.logger.info('Resuming trawler');
     // Implementation depends on the specific queue implementation
   }
 
   protected async addJob(index: number, chunk: string[]): Promise<any> {
+    this.logger.debug(`Adding job ${index} with ${chunk.length} relays`);
     // Implementation depends on the specific queue implementation
     return null;
   }

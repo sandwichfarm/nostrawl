@@ -1,5 +1,6 @@
 import { Event } from 'nostr-tools';
 import PQueue from 'p-queue';
+import { LogLevel } from './utils/Logger';
 
 /**
  * Options for configuring the trawler
@@ -40,6 +41,12 @@ export interface TrawlerOptions {
     enabled: boolean;
     path: string;
   };
+  
+  /**
+   * Log level for the trawler
+   * @default LogLevel.INFO
+   */
+  logLevel?: LogLevel;
 
   /**
    * Parser function for processing events (legacy approach)

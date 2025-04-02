@@ -23,6 +23,7 @@
   "dependencies": {
     "@nostr-fetch/adapter-nostr-tools": "0.13.1",
     "bullmq": "4.14.2",
+    "chalk": "5.4.1",
     "dotenv": "16.3.1",
     "ioredis": "5.3.2",
     "javascript-time-ago": "2.5.9",
