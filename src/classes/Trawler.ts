@@ -7,11 +7,12 @@ import { simplePoolAdapter } from '@nostr-fetch/adapter-nostr-tools';
 import { open } from 'lmdb';
 import { mergeDeepRight } from 'ramda';
 import { TrawlerOptions, Progress } from '../types';
+import { EventEmitter } from 'events';
 
 TimeAgo.addDefaultLocale(en);
 const timeAgo = new TimeAgo('en-US');
 
-export default class NTTrawler {
+export default class NTTrawler extends EventEmitter {
   protected queue: any;
   protected relays: string[];
   protected promises: Promise<any>[];
@@ -20,6 +21,7 @@ export default class NTTrawler {
   protected cache: ReturnType<typeof open> | null;
 
   constructor(relays: string[], options: Partial<TrawlerOptions> = {}) {
+    super();
     this.queue = null;
     this.relays = relays;
     this.promises = [];
@@ -29,7 +31,6 @@ export default class NTTrawler {
       relaysPerBatch: 3,
       restDuration: 60 * 1000,
       progressEvery: 5000,
-      parser: async () => {},
       filters: {},
       since: 0,
       sinceStrict: true,
@@ -41,7 +42,8 @@ export default class NTTrawler {
       cache: {
         enabled: true,
         path: './cache',
-      }
+      },
+      parser: async () => {}
     };
     this.options = mergeDeepRight(this.defaults, options) as TrawlerOptions;
     this.cache = null;
@@ -123,7 +125,12 @@ export default class NTTrawler {
             continue;
           }
 
-          await this.options.parser!(this, event, $job);
+          // Emit the event and call the parser for backward compatibility
+          this.emit('event', event);
+          if (this.options.parser) {
+            await this.options.parser(this, event, $job);
+          }
+          
           progress.found++;
           if (doUpdateProgress()) {
             lastProgressUpdate = Date.now();
@@ -134,6 +141,7 @@ export default class NTTrawler {
         resolve(this.getSince(relay));
       } catch (error) {
         console.error('Error', error);
+        this.emit('error', error);
         reject(error);
       }
     }));
@@ -169,7 +177,9 @@ export default class NTTrawler {
   }
 
   async updateProgress(progress: Progress, $job: any): Promise<void> {
-    // Implementation depends on the specific queue implementation
+    // Emit progress event
+    this.emit('progress', progress);
+    // Implementation for queue-specific progress updates will be handled in derived classes
   }
 
   pause(): void {

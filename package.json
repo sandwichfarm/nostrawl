@@ -1,6 +1,6 @@
 {
   "name": "nostrawl",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A nostr library for continously retrieving events from nostr relays based on a set of filters.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -16,7 +16,6 @@
     "clean": "rimraf dist",
     "prebuild": "npm run clean",
     "prepare": "npm run build",
-    "example": "docker compose -f examples/bullmq/docker-compose.yaml up --build",
     "example:pqueue:basic": "tsx examples/pqueue/basic-example.ts",
     "example:pqueue:advanced": "tsx examples/pqueue/advanced-example.ts",
     "example:bullmq": "docker compose -f examples/bullmq/docker-compose.yaml up --build"

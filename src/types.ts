@@ -1,13 +1,30 @@
 import { Event } from 'nostr-tools';
 import PQueue from 'p-queue';
 
+/**
+ * Options for configuring the trawler
+ * 
+ * The trawler now supports an EventEmitter interface for handling events:
+ * - 'event': Emitted when a new valid event is received
+ * - 'progress': Emitted with progress updates
+ * - 'error': Emitted when an error occurs
+ * 
+ * You can use either the event listener pattern:
+ * ```
+ * trawler.on('event', (event) => {...})
+ * ```
+ * 
+ * Or the parser/validator pattern (legacy):
+ * ```
+ * parser: (trawler, event) => {...}
+ * ```
+ */
 export interface TrawlerOptions {
   queueName?: string;
   repeatWhenComplete?: boolean;
   relaysPerBatch?: number;
   restDuration?: number;
   progressEvery?: number;
-  parser?: (trawler: any, event: Event, job: any) => Promise<void>;
   filters?: Record<string, any>;
   since?: number | Record<string, number>;
   sinceStrict?: boolean;
@@ -23,7 +40,22 @@ export interface TrawlerOptions {
     enabled: boolean;
     path: string;
   };
+
+  /**
+   * Parser function for processing events (legacy approach)
+   * Consider using event listeners instead: trawler.on('event', (event) => {...})
+   */
+  parser?: (trawler: any, event: Event, job: any) => Promise<void>;
+  
+  /**
+   * Validator function for filtering events
+   * @returns true to accept the event, false to reject it
+   */
   validator?: (trawler: any, event: Event) => boolean;
+  
+  /**
+   * Called after the cache is opened
+   */
   after_cacheOpen?: (cache: any) => void;
 }
 

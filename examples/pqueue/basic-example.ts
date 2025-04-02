@@ -6,7 +6,7 @@ import { TrawlerOptions } from '../../src/types';
  * 
  * This example shows how to:
  * 1. Configure the PQueue adapter with custom options
- * 2. Set up event handlers for queue events
+ * 2. Set up event handlers for queue events and nostr events
  * 3. Run the trawler with the PQueue adapter
  */
 async function main() {
@@ -16,9 +16,9 @@ async function main() {
   const relays = [
     'wss://relay.damus.io',
     'wss://nostr.fmt.wiz.biz',
-    'wss://nostr.bitcoiner.social',
     'wss://relay.nostr.band',
-    'wss://nostr.mom',
+    'wss://nostr.bitcoiner.social',
+    'wss://relay.nostr.info'
   ];
 
   console.log(`Using ${relays.length} relays:`, relays);
@@ -36,44 +36,18 @@ async function main() {
       // Timeout for each job in milliseconds
       timeout: 30000,
       
-      // Whether to throw an error when a job times out
-      throwOnTimeout: true,
-      
-      // Maximum number of jobs per interval (must be a number >= 1)
-      intervalCap: 10,
-      
-      // Interval in milliseconds
-      interval: 1000,
-      
-      // Whether to carry over concurrency count
-      carryoverConcurrencyCount: true,
-      
-      // Whether to auto-start the queue
-      autoStart: true,
+      // Cache configuration
+      cache: {
+        path: './cache'
+      }
     },
     
     // General trawler options
-    queueName: 'pqueue-example',
-    repeatWhenComplete: false,
     relaysPerBatch: 2,
-    restDuration: 1000,
-    progressEvery: 10000,
     
-    // Cache configuration
-    cache: {
-      enabled: true,
-      path: './cache/pqueue-example',
-    },
-    
-    // Filter for events (example: only text notes from the last hour)
+    // Filter for events (only text notes)
     filters: {
-      kinds: [1],
-      since: Math.floor(Date.now() / 1000) - 3600, // Last hour
-    },
-    
-    // Add a parser to log events
-    parser: async (trawler, event, job) => {
-      console.log(event.id)  
+      kinds: [1]
     }
   };
 
@@ -82,7 +56,23 @@ async function main() {
   // Create a trawler instance with the PQueue adapter
   const trawler = nostrawl(relays, options);
 
-  // Set up event handlers
+  // Set up event handlers for receiving nostr events
+  // This is the recommended way to handle events (easier than using parser)
+  trawler.on('event', (event) => {
+    console.log(event.id);
+  });
+
+  // Track progress
+  trawler.on('progress', (progress) => {
+    console.log(`Progress: ${progress.found} events found, ${progress.rejected} rejected from ${progress.relay}`);
+  });
+
+  // Handle errors
+  trawler.on('error', (error) => {
+    console.error('Error:', error);
+  });
+
+  // Queue-specific events
   trawler.on('queue_active', () => {
     console.log('Queue is active - processing jobs');
   });
@@ -91,21 +81,8 @@ async function main() {
     console.log('Job completed successfully');
   });
 
-  trawler.on('queue_error', (error) => {
-    console.error('Queue error:', error);
-  });
-
   trawler.on('queue_idle', () => {
     console.log('Queue is idle - waiting for more jobs');
-  });
-
-  trawler.on('progress', (progress) => {
-    console.log('Progress:', {
-      found: progress.found,
-      rejected: progress.rejected,
-      relay: progress.relay,
-      timestamp: new Date(progress.last_timestamp * 1000).toISOString()
-    });
   });
 
   // Initialize and run the trawler
@@ -142,7 +119,7 @@ async function main() {
       });
 
       // Handle errors
-      trawler.on('queue_error', (error) => {
+      trawler.on('error', (error) => {
         console.error('Fatal error:', error);
         cleanup();
         reject(error);
