@@ -34,7 +34,7 @@ export default class Logger {
    * @param options Logger options
    */
   constructor(options: LoggerOptions = {}) {
-    this.level = options.level ?? LogLevel.INFO;
+    this.level = options.level ?? LogLevel.SILENT;
     this.prefix = options.prefix ?? 'nostrawl';
     this.timestamp = options.timestamp ?? true;
   }

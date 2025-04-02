@@ -119,8 +119,27 @@ class BullMqAdapter extends NTQueue {
   }
 
   async updateProgress(progress: Progress, $job: any): Promise<void> {
-    this.logger.debug(`Progress update: ${progress.found}/${progress.total} (${(progress.found/progress.total*100).toFixed(1)}%)`);
-    await $job.updateProgress(progress.found / progress.total * 100);
+    // Calculate percentage for logging
+    const percentage = progress.total > 0 ? (progress.found / progress.total) * 100 : 0;
+    const percentageStr = percentage.toFixed(1) + '%';
+    
+    // Log comprehensive progress at INFO level
+    this.logger.info(`Progress for job ${$job.id}: ${progress.found}/${progress.total} events (${percentageStr}) from ${progress.relay}`);
+    
+    // Log detailed progress at DEBUG level
+    this.logger.debug('Detailed progress information', {
+      jobId: $job.id,
+      relay: progress.relay,
+      found: progress.found,
+      rejected: progress.rejected,
+      total: progress.total,
+      percentage: percentageStr,
+      last_timestamp: progress.last_timestamp,
+      last_event_time: progress.last_timestamp ? new Date(progress.last_timestamp * 1000).toISOString() : 'N/A'
+    });
+    
+    // Update the job's progress in BullMQ
+    await $job.updateProgress(percentage);
   }
 
   async addJob(index: number, chunk: any): Promise<any> {

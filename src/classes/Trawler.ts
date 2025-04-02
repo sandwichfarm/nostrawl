@@ -172,10 +172,17 @@ export default class NTTrawler extends EventEmitter {
           }
         }
         
+        // Final progress update when done with a relay
+        if (progress.found > 0 || progress.rejected > 0) {
+          progress.total = await this.countEvents(relay);
+          await this.updateProgress(progress, $job);
+        }
+        
         this.logger.info(`Completed fetch for ${relay}`, {
           found: progress.found,
           rejected: progress.rejected,
-          last_timestamp: progress.last_timestamp
+          last_timestamp: new Date(progress.last_timestamp * 1000).toISOString(),
+          percentage: progress.total > 0 ? `${((progress.found / progress.total) * 100).toFixed(1)}%` : 'N/A'
         });
         
         resolve(this.getSince(relay));
@@ -224,13 +231,22 @@ export default class NTTrawler extends EventEmitter {
   }
 
   async updateProgress(progress: Progress, $job: any): Promise<void> {
-    // Emit progress event
+    // Log comprehensive progress info at debug level
+    const timeSince = progress.last_timestamp > 0 
+      ? timeAgo.format(progress.last_timestamp * 1000) 
+      : 'N/A';
+    
     this.logger.debug(`Progress update for ${progress.relay}`, {
       found: progress.found,
       rejected: progress.rejected,
-      last_timestamp: progress.last_timestamp
+      total: progress.total,
+      last_timestamp: progress.last_timestamp,
+      timeSince,
+      percentage: progress.total > 0 ? `${((progress.found / progress.total) * 100).toFixed(1)}%` : 'N/A',
+      jobId: $job?.id
     });
     
+    // Emit progress event
     this.emit('progress', progress);
     // Implementation for queue-specific progress updates will be handled in derived classes
   }

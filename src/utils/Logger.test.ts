@@ -17,7 +17,8 @@ describe('Logger', () => {
 
   it('should create a logger with default settings', () => {
     const logger = new Logger();
-    expect(logger.getLevel()).toBe(LogLevel.INFO);
+    // Default level is now SILENT instead of INFO
+    expect(logger.getLevel()).toBe(LogLevel.SILENT);
   });
 
   it('should create a logger with custom log level', () => {
@@ -27,8 +28,6 @@ describe('Logger', () => {
 
   it('should be able to change log level', () => {
     const logger = new Logger();
-    expect(logger.getLevel()).toBe(LogLevel.INFO);
-    
     logger.setLevel(LogLevel.ERROR);
     expect(logger.getLevel()).toBe(LogLevel.ERROR);
   });

@@ -1,6 +1,6 @@
 import { nostrawl } from '../../src';
 import { TrawlerOptions } from '../../src/types';
-import { LogLevel } from '../../src/utils';
+import { LogLevel, logger } from '../../src/utils';
 
 /**
  * Basic example demonstrating the usage of the PQueue adapter
@@ -12,7 +12,9 @@ import { LogLevel } from '../../src/utils';
  * 4. Run the trawler with the PQueue adapter
  */
 async function main() {
-  console.log('Starting PQueue example...');
+  // Create a child logger for this example
+  const exampleLogger = logger.child('example');
+  exampleLogger.info('Starting PQueue example...');
   
   // Define the relays to trawl
   const relays = [
@@ -23,7 +25,7 @@ async function main() {
     'wss://relay.nostr.info'
   ];
 
-  console.log(`Using ${relays.length} relays:`, relays);
+  exampleLogger.info(`Using ${relays.length} relays:`, relays);
 
   // Get log level from command line arguments, default to INFO
   const logLevelArg = process.argv.find(arg => arg.startsWith('--log-level='));
@@ -41,7 +43,7 @@ async function main() {
     }
   }
   
-  console.log(`Using log level: ${LogLevel[logLevel]}`);
+  exampleLogger.info(`Using log level: ${LogLevel[logLevel]}`);
 
   // Configure the PQueue adapter options
   const options: TrawlerOptions = {
@@ -74,7 +76,7 @@ async function main() {
     }
   };
 
-  console.log('Creating trawler with options:', JSON.stringify(options, null, 2));
+  exampleLogger.info('Creating trawler with options:', options);
 
   // Create a trawler instance with the PQueue adapter
   const trawler = nostrawl(relays, options);
@@ -82,44 +84,55 @@ async function main() {
   // Set up event handlers for receiving nostr events
   // This is the recommended way to handle events (easier than using parser)
   trawler.on('event', (event) => {
-    console.log(`Received event: ${event.id}`);
-    console.log(`From: ${event.pubkey.slice(0, 8)}... | Kind: ${event.kind}`);
-    console.log(`Content: ${event.content.slice(0, 80)}${event.content.length > 80 ? '...' : ''}`);
-    console.log('-'.repeat(80));
+    exampleLogger.info(`Received event: ${event.id}`);
+    exampleLogger.debug(`From: ${event.pubkey.slice(0, 8)}... | Kind: ${event.kind}`);
+    exampleLogger.debug(`Content: ${event.content.slice(0, 80)}${event.content.length > 80 ? '...' : ''}`);
   });
 
   // Track progress
   trawler.on('progress', (progress) => {
-    console.log(`Progress: ${progress.found} events found, ${progress.rejected} rejected from ${progress.relay}`);
+    // Log progress as INFO to ensure it's visible at default log level
+    exampleLogger.info(`Progress: ${progress.found} events found, ${progress.rejected} rejected from ${progress.relay}`);
+    
+    // Log more detailed progress information at DEBUG level
+    exampleLogger.debug('Progress details:', {
+      found: progress.found,
+      rejected: progress.rejected,
+      relay: progress.relay,
+      last_timestamp: progress.last_timestamp,
+      total: progress.total,
+      percentage: progress.total > 0 ? `${((progress.found / progress.total) * 100).toFixed(1)}%` : 'N/A'
+    });
   });
 
   // Handle errors
   trawler.on('error', (error) => {
-    console.error('Error:', error);
+    exampleLogger.error('Error occurred:', error);
   });
 
   // Queue-specific events
   trawler.on('queue_active', () => {
-    console.log('Queue is active - processing jobs');
+    exampleLogger.info('Queue is active - processing jobs');
   });
 
   trawler.on('queue_completed', (result) => {
-    console.log('Job completed successfully');
+    exampleLogger.info('Job completed successfully');
+    exampleLogger.debug('Job result:', result);
   });
 
   trawler.on('queue_idle', () => {
-    console.log('Queue is idle - waiting for more jobs');
+    exampleLogger.info('Queue is idle - waiting for more jobs');
   });
 
   // Initialize and run the trawler
   try {
-    console.log('Initializing trawler...');
+    exampleLogger.info('Initializing trawler...');
     await trawler.init();
-    console.log('Trawler initialized');
+    exampleLogger.info('Trawler initialized');
     
-    console.log('Starting trawler...');
+    exampleLogger.info('Starting trawler...');
     await trawler.run();
-    console.log('Trawler started');
+    exampleLogger.info('Trawler started');
 
     // Create a promise that resolves when the trawler is done or when stopped
     const trawlerPromise = new Promise<void>((resolve, reject) => {
@@ -128,55 +141,62 @@ async function main() {
       const cleanup = () => {
         if (!isDone) {
           isDone = true;
-          console.log('Cleaning up trawler...');
+          exampleLogger.info('Cleaning up trawler...');
           trawler.stop();
           resolve();
         }
       };
 
       // Set up cleanup handlers
-      process.on('SIGINT', cleanup);
-      process.on('SIGTERM', cleanup);
+      process.on('SIGINT', () => {
+        exampleLogger.info('Received SIGINT signal, cleaning up...');
+        cleanup();
+      });
+      
+      process.on('SIGTERM', () => {
+        exampleLogger.info('Received SIGTERM signal, cleaning up...');
+        cleanup();
+      });
 
       // Handle completion
       trawler.on('queue_idle', () => {
-        console.log('All jobs completed');
+        exampleLogger.info('All jobs completed');
         cleanup();
       });
 
       // Handle errors
       trawler.on('error', (error) => {
-        console.error('Fatal error:', error);
+        exampleLogger.error('Fatal error:', error);
         cleanup();
         reject(error);
       });
 
       // Set a maximum runtime of 2 minutes
       setTimeout(() => {
-        console.log('Maximum runtime reached (2 minutes)');
+        exampleLogger.info('Maximum runtime reached (2 minutes)');
         cleanup();
       }, 2 * 60 * 1000);
     });
 
     // Wait for the trawler to complete
     await trawlerPromise;
-    console.log('Trawler finished');
+    exampleLogger.info('Trawler finished');
 
   } catch (error) {
-    console.error('Error running trawler:', error);
+    exampleLogger.error('Error running trawler:', error);
     throw error;
   } finally {
     // Ensure cleanup
-    console.log('Stopping trawler...');
+    exampleLogger.info('Stopping trawler...');
     trawler.stop();
-    console.log('Trawler stopped and cleaned up');
+    exampleLogger.info('Trawler stopped and cleaned up');
   }
 }
 
 // Run the example
-console.log('Starting PQueue example script...');
-console.log('Log level can be set with --log-level=<LEVEL> where level is one of: SILENT, ERROR, WARN, INFO, DEBUG, TRACE');
+logger.info('Starting PQueue example script...');
+logger.info('Log level can be set with --log-level=<LEVEL> where level is one of: SILENT, ERROR, WARN, INFO, DEBUG, TRACE');
 main().catch((error) => {
-  console.error('Fatal error:', error);
+  logger.error('Fatal error:', error);
   process.exit(1);
 }); 

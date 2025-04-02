@@ -1,6 +1,6 @@
 import PQueue from 'p-queue';
 import NTQueue from '../classes/Queue';
-import { PQueueAdapterOptions } from '../types';
+import { PQueueAdapterOptions, Progress } from '../types';
 import { LogLevel } from '../utils/Logger';
 
 export default class PQueueAdapter extends NTQueue {
@@ -160,8 +160,42 @@ export default class PQueueAdapter extends NTQueue {
     await this.$q?.stop(key);
   }
 
-  public async updateProgress(progress: any, $job: any): Promise<void> {
-    this.logger.debug(`Progress update for job #${$job.id}`, progress);
+  public async updateProgress(progress: Progress, $job: any): Promise<void> {
+    // Enhanced progress logging with more details and formatted values
+    const jobInfo = `job #${$job.id}`;
+    const relayInfo = progress.relay;
+    const countInfo = `${progress.found} found, ${progress.rejected} rejected`;
+    
+    // Calculate percentage if total is available
+    let percentageInfo = '';
+    if (progress.total > 0) {
+      const percentage = (progress.found / progress.total) * 100;
+      percentageInfo = ` (${percentage.toFixed(1)}%)`;
+    }
+    
+    // Format timestamp if available
+    let timeInfo = '';
+    if (progress.last_timestamp > 0) {
+      const date = new Date(progress.last_timestamp * 1000);
+      timeInfo = `, last event: ${date.toISOString()}`;
+    }
+    
+    this.logger.info(`Progress update for ${jobInfo} - ${relayInfo}: ${countInfo}${percentageInfo}${timeInfo}`);
+    
+    // Log more detailed info at debug level
+    this.logger.debug(`Detailed progress for ${jobInfo}`, {
+      relay: progress.relay,
+      found: progress.found,
+      rejected: progress.rejected,
+      total: progress.total,
+      last_timestamp: progress.last_timestamp,
+      percentage: progress.total > 0 ? `${((progress.found / progress.total) * 100).toFixed(1)}%` : 'N/A',
+      size: this.queue.size,
+      pending: this.queue.pending,
+      isPaused: this.queue.isPaused
+    });
+
+    // Emit the progress event
     await this._on('progress', progress);
   }
 }
