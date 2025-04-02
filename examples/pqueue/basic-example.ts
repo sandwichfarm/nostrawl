@@ -29,7 +29,7 @@ async function main() {
 
   // Get log level from command line arguments, default to INFO
   const logLevelArg = process.argv.find(arg => arg.startsWith('--log-level='));
-  let logLevel = LogLevel.DEBUG;
+  let logLevel = LogLevel.SILENT;
   
   if (logLevelArg) {
     const level = logLevelArg.split('=')[1]?.toUpperCase();

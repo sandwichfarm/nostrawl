@@ -126,7 +126,9 @@ export default class NTTrawler extends EventEmitter {
         const progress: Progress = {
           found: 0,
           rejected: 0,
+          last_timestamp: 0,
           highest_timestamp: 0,
+          lowest_timestamp: 0,
           total: await this.countEvents(relay),
           relay: relay
         };
@@ -143,6 +145,10 @@ export default class NTTrawler extends EventEmitter {
         for await (const event of it) {
           const passedValidation = this.options?.validator ? this.options.validator(this, event) : true;
           const doUpdateProgress = () => Date.now() - lastProgressUpdate > (this.options.progressEvery ?? 5000);
+          progress.last_timestamp = event.created_at;
+          if(progress.lowest_timestamp > event.created_at) {
+            progress.lowest_timestamp = event.created_at;
+          }
           if(progress.highest_timestamp < event.created_at) {
             progress.highest_timestamp = event.created_at;
           }
@@ -183,7 +189,9 @@ export default class NTTrawler extends EventEmitter {
         this.logger.info(`Completed fetch for ${relay}`, {
           found: progress.found,
           rejected: progress.rejected,
+          last_timestamp: new Date(progress.last_timestamp * 1000).toISOString(),
           highest_timestamp: new Date(progress.highest_timestamp * 1000).toISOString(),
+          lowest_timestamp: new Date(progress.lowest_timestamp * 1000).toISOString(),
           percentage: progress.total > 0 ? `${((progress.found / progress.total) * 100).toFixed(1)}%` : 'N/A'
         });
         
@@ -234,15 +242,15 @@ export default class NTTrawler extends EventEmitter {
 
   async updateProgress(progress: Progress, $job: any): Promise<void> {
     // Log comprehensive progress info at debug level
-    const timeSince = progress.highest_timestamp > 0 
-      ? timeAgo.format(progress.highest_timestamp * 1000) 
+    const timeSince = progress.last_timestamp > 0 
+      ? timeAgo.format(progress.last_timestamp * 1000) 
       : 'N/A';
     
     this.logger.debug(`Progress update for ${progress.relay}`, {
       found: progress.found,
       rejected: progress.rejected,
       total: progress.total,
-      highest_timestamp: progress.highest_timestamp,
+      last_timestamp: progress.last_timestamp,
       timeSince,
       percentage: progress.total > 0 ? `${((progress.found / progress.total) * 100).toFixed(1)}%` : 'N/A',
       jobId: $job?.id
