@@ -29,7 +29,7 @@ async function main() {
 
   // Get log level from command line arguments, default to INFO
   const logLevelArg = process.argv.find(arg => arg.startsWith('--log-level='));
-  let logLevel = LogLevel.INFO;
+  let logLevel = LogLevel.DEBUG;
   
   if (logLevelArg) {
     const level = logLevelArg.split('=')[1]?.toUpperCase();
@@ -58,8 +58,8 @@ async function main() {
       // Number of concurrent jobs
       concurrency: 2,
       
-      // Timeout for each job in milliseconds
-      timeout: 30000,
+      // timeout is intentionally not set (undefined)
+      // this disables timeouts for long-running jobs
       
       // Cache configuration
       cache: {
@@ -137,25 +137,54 @@ async function main() {
     // Create a promise that resolves when the trawler is done or when stopped
     const trawlerPromise = new Promise<void>((resolve, reject) => {
       let isDone = false;
+      let forceExitTimeout: NodeJS.Timeout | null = null;
 
-      const cleanup = () => {
+      const cleanup = (fromSignal = false) => {
         if (!isDone) {
           isDone = true;
           exampleLogger.info('Cleaning up trawler...');
-          trawler.stop();
-          resolve();
+          
+          try {
+            // Stop the trawler
+            trawler.stop();
+            
+            // If triggered by a signal like SIGINT, set a force exit timeout
+            // This ensures the process exits even if trawler.stop() gets stuck
+            if (fromSignal) {
+              if (forceExitTimeout) {
+                clearTimeout(forceExitTimeout);
+              }
+              forceExitTimeout = setTimeout(() => {
+                exampleLogger.warn('Forcing exit after timeout...');
+                process.exit(0);
+              }, 2000); // Force exit after 2 seconds if stop doesn't complete
+            }
+            
+            resolve();
+          } catch (error) {
+            exampleLogger.error('Error during cleanup:', error);
+            if (fromSignal) {
+              process.exit(1);
+            } else {
+              reject(error);
+            }
+          }
         }
       };
 
+      // Remove any existing signal handlers to prevent duplicates
+      process.removeAllListeners('SIGINT');
+      process.removeAllListeners('SIGTERM');
+
       // Set up cleanup handlers
       process.on('SIGINT', () => {
-        exampleLogger.info('Received SIGINT signal, cleaning up...');
-        cleanup();
+        exampleLogger.info('Received SIGINT signal (Ctrl+C), cleaning up...');
+        cleanup(true);
       });
       
       process.on('SIGTERM', () => {
         exampleLogger.info('Received SIGTERM signal, cleaning up...');
-        cleanup();
+        cleanup(true);
       });
 
       // Handle completion

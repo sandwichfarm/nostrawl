@@ -18,7 +18,7 @@ export default class PQueueAdapter extends NTQueue {
     this.logger = this.logger.child('pqueue');
     this.logger.debug('PQueueAdapter initialized', {
       concurrency: this.options.adapterOptions?.concurrency || 1,
-      timeout: this.options.adapterOptions?.timeout,
+      timeout: this.options.adapterOptions?.timeout === undefined ? 'disabled' : this.options.adapterOptions?.timeout,
       relays: relays.length
     });
   }
@@ -32,10 +32,20 @@ export default class PQueueAdapter extends NTQueue {
     this.logger.info('Initializing PQueueAdapter');
     const queueOptions: any = {
       concurrency: 1,
-      timeout: 30000,
       throwOnTimeout: true,
       ...this.options.adapterOptions
     };
+
+    // Only set timeout if it's explicitly provided
+    // undefined timeout means no timeout (for long running jobs)
+    if (this.options.adapterOptions?.timeout !== undefined) {
+      queueOptions.timeout = this.options.adapterOptions.timeout;
+      this.logger.debug(`Setting timeout to ${queueOptions.timeout}ms`);
+    } else {
+      // Remove timeout entirely to disable it
+      delete queueOptions.timeout;
+      this.logger.debug('Timeout disabled for queue jobs');
+    }
 
     // Ensure intervalCap is a valid number if provided
     if (queueOptions.intervalCap !== undefined && 
@@ -60,10 +70,40 @@ export default class PQueueAdapter extends NTQueue {
         this.logger.info('Queue: Starting');
         this.queue.start();
       },
-      stop: async () => {
-        this.logger.info('Queue: Stopping');
-        await this.queue.onIdle();
-        this.queue.clear();
+      stop: async (forceStop = false) => {
+        this.logger.info(`Queue: Stopping${forceStop ? ' (force)' : ''}`);
+        
+        if (forceStop) {
+          // Immediate stop: pause and clear without waiting for idle
+          this.queue.pause();
+          this.queue.clear();
+          return;
+        }
+        
+        // Try graceful stop with timeout
+        try {
+          // Set a reasonable timeout for onIdle (5 seconds)
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => {
+              reject(new Error('Queue onIdle timeout reached'));
+            }, 5000);
+          });
+          
+          // Race between normal idle and timeout
+          await Promise.race([
+            this.queue.onIdle(),
+            timeoutPromise
+          ]);
+          
+          // If we get here, onIdle completed before timeout
+          this.logger.debug('Queue reached idle state gracefully');
+        } catch (error) {
+          // If timeout or error, force clear
+          this.logger.warn('Queue did not reach idle state, forcing clear', error);
+        } finally {
+          // Always clear the queue
+          this.queue.clear();
+        }
       }
     };
 
@@ -155,9 +195,19 @@ export default class PQueueAdapter extends NTQueue {
     this.$q?.start(key);
   }
 
-  async stop(key?: string): Promise<void> {
-    this.logger.info('Stopping queue');
-    await this.$q?.stop(key);
+  async stop(key?: string, force = false): Promise<void> {
+    this.logger.info(`Stopping queue${force ? ' (forced)' : ''}`);
+    try {
+      await this.$q?.stop(force);
+      this.logger.info('Queue stopped successfully');
+    } catch (error) {
+      this.logger.error('Error stopping queue:', error);
+      // Force clear even if error occurs
+      if (!force) {
+        this.logger.warn('Attempting forced stop after error');
+        await this.stop(key, true);
+      }
+    }
   }
 
   public async updateProgress(progress: Progress, $job: any): Promise<void> {

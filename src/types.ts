@@ -87,12 +87,51 @@ export interface QueueAdapter {
 }
 
 export interface PQueueAdapterOptions extends TrawlerOptions {
+  /**
+   * Number of concurrent jobs to process
+   * @default 1
+   */
   concurrency?: number;
+  
+  /**
+   * Timeout for each job in milliseconds
+   * Set to undefined for no timeout (for long-running jobs)
+   * @default undefined - no timeout
+   */
   timeout?: number;
+  
+  /**
+   * Whether to throw an error when a job times out
+   * @default true
+   */
   throwOnTimeout?: boolean;
+  
+  /**
+   * Maximum number of jobs per interval
+   * Must be a number >= 1
+   */
   intervalCap?: number;
+  
+  /**
+   * Interval in milliseconds
+   * @default 0
+   */
   interval?: number;
+  
+  /**
+   * Whether to carry over concurrency count
+   * @default false
+   */
   carryoverConcurrencyCount?: boolean;
+  
+  /**
+   * Whether to auto-start the queue
+   * @default true
+   */
   autoStart?: boolean;
+  
+  /**
+   * Custom PQueue class to use
+   */
   queueClass?: typeof PQueue;
 } 
