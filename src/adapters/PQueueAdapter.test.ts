@@ -138,7 +138,7 @@ describe('PQueueAdapter', () => {
       found: 5,
       rejected: 0,
       relay: 'wss://relay1.com',
-      last_timestamp: 1234567890,
+      highest_timestamp: 1234567890,
       total: 10
     };
     

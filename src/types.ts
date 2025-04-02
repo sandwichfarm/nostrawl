@@ -69,7 +69,7 @@ export interface TrawlerOptions {
 export interface Progress {
   found: number;
   rejected: number;
-  last_timestamp: number;
+  highest_timestamp: number;
   total: number;
   relay: string;
 }

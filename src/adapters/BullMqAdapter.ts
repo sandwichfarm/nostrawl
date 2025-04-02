@@ -134,8 +134,8 @@ class BullMqAdapter extends NTQueue {
       rejected: progress.rejected,
       total: progress.total,
       percentage: percentageStr,
-      last_timestamp: progress.last_timestamp,
-      last_event_time: progress.last_timestamp ? new Date(progress.last_timestamp * 1000).toISOString() : 'N/A'
+      highest_timestamp: progress.highest_timestamp,
+      last_event_time: progress.highest_timestamp ? new Date(progress.highest_timestamp * 1000).toISOString() : 'N/A'
     });
     
     // Update the job's progress in BullMQ

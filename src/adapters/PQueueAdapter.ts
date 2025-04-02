@@ -225,8 +225,8 @@ export default class PQueueAdapter extends NTQueue {
     
     // Format timestamp if available
     let timeInfo = '';
-    if (progress.last_timestamp > 0) {
-      const date = new Date(progress.last_timestamp * 1000);
+    if (progress.highest_timestamp > 0) {
+      const date = new Date(progress.highest_timestamp * 1000);
       timeInfo = `, last event: ${date.toISOString()}`;
     }
     
@@ -238,7 +238,7 @@ export default class PQueueAdapter extends NTQueue {
       found: progress.found,
       rejected: progress.rejected,
       total: progress.total,
-      last_timestamp: progress.last_timestamp,
+      highest_timestamp: progress.highest_timestamp,
       percentage: progress.total > 0 ? `${((progress.found / progress.total) * 100).toFixed(1)}%` : 'N/A',
       size: this.queue.size,
       pending: this.queue.pending,

@@ -126,7 +126,7 @@ export default class NTTrawler extends EventEmitter {
         const progress: Progress = {
           found: 0,
           rejected: 0,
-          last_timestamp: 0,
+          highest_timestamp: 0,
           total: await this.countEvents(relay),
           relay: relay
         };
@@ -143,8 +143,9 @@ export default class NTTrawler extends EventEmitter {
         for await (const event of it) {
           const passedValidation = this.options?.validator ? this.options.validator(this, event) : true;
           const doUpdateProgress = () => Date.now() - lastProgressUpdate > (this.options.progressEvery ?? 5000);
-          progress.last_timestamp = event.created_at;
-          this.updateSince(relay, progress.last_timestamp);
+          if(progress.highest_timestamp > event.created_at) {
+            progress.highest_timestamp = event.created_at;
+          }
           
           if (!passedValidation) {
             this.logger.trace(`Event ${event.id} failed validation`, { relay });
@@ -175,13 +176,14 @@ export default class NTTrawler extends EventEmitter {
         // Final progress update when done with a relay
         if (progress.found > 0 || progress.rejected > 0) {
           progress.total = await this.countEvents(relay);
+          this.updateSince(relay, progress.highest_timestamp);
           await this.updateProgress(progress, $job);
         }
         
         this.logger.info(`Completed fetch for ${relay}`, {
           found: progress.found,
           rejected: progress.rejected,
-          last_timestamp: new Date(progress.last_timestamp * 1000).toISOString(),
+          highest_timestamp: new Date(progress.highest_timestamp * 1000).toISOString(),
           percentage: progress.total > 0 ? `${((progress.found / progress.total) * 100).toFixed(1)}%` : 'N/A'
         });
         
@@ -232,15 +234,15 @@ export default class NTTrawler extends EventEmitter {
 
   async updateProgress(progress: Progress, $job: any): Promise<void> {
     // Log comprehensive progress info at debug level
-    const timeSince = progress.last_timestamp > 0 
-      ? timeAgo.format(progress.last_timestamp * 1000) 
+    const timeSince = progress.highest_timestamp > 0 
+      ? timeAgo.format(progress.highest_timestamp * 1000) 
       : 'N/A';
     
     this.logger.debug(`Progress update for ${progress.relay}`, {
       found: progress.found,
       rejected: progress.rejected,
       total: progress.total,
-      last_timestamp: progress.last_timestamp,
+      highest_timestamp: progress.highest_timestamp,
       timeSince,
       percentage: progress.total > 0 ? `${((progress.found / progress.total) * 100).toFixed(1)}%` : 'N/A',
       jobId: $job?.id
