@@ -7,7 +7,7 @@ import { simplePoolAdapter } from '@nostr-fetch/adapter-nostr-tools';
 import { open } from 'lmdb';
 import { mergeDeepRight } from 'ramda';
 import { TrawlerOptions, Progress } from '../types';
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'tseep';
 import { logger, Logger, LogLevel } from '../utils';
 
 TimeAgo.addDefaultLocale(en);
@@ -143,8 +143,13 @@ export default class NTTrawler extends EventEmitter {
         );
 
         for await (const event of it) {
+          if(this.cache?.get(`event:${event.id}`)) {
+            progress.rejected++;
+            continue;
+          }
           const passedValidation = this.options?.validator ? this.options.validator(this, event) : true;
           const doUpdateProgress = () => Date.now() - lastProgressUpdate > (this.options.progressEvery ?? 5000);
+
           progress.last_timestamp = event.created_at;
           if(progress.lowest_timestamp > event.created_at) {
             progress.lowest_timestamp = event.created_at;
@@ -166,12 +171,15 @@ export default class NTTrawler extends EventEmitter {
 
           // Emit the event and call the parser for backward compatibility
           this.logger.debug(`Received valid event ${event.id} from ${relay}`);
+
           this.emit('event', event);
+          this.cache?.put(`event:${event.id}`, event);
+          progress.found++;
+
           if (this.options.parser) {
             await this.options.parser(this, event, $job);
           }
-          
-          progress.found++;
+
           if (doUpdateProgress()) {
             lastProgressUpdate = Date.now();
             progress.total = await this.countEvents(relay);

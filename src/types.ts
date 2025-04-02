@@ -83,8 +83,24 @@ export interface QueueAdapter {
   clear(key?: string): void;
   start(key?: string): void;
   stop(key?: string): void;
-  on(key: string, callback: (...args: any[]) => void): this;
+  /**
+   * Standard EventEmitter on method to register event listeners
+   */
+  on(event: string, listener: (...args: any[]) => void): this;
+  
+  /**
+   * Standard EventEmitter emit method to emit events
+   */
+  emit(event: string, ...args: any[]): boolean;
+  
+  /**
+   * @deprecated Use the standard EventEmitter on method with 'queue_' prefix
+   */
   on_queue(key: string, data: any): this;
+  
+  /**
+   * @deprecated Use the standard EventEmitter on method with 'worker_' prefix
+   */
   on_worker(key: string, data: any): this;
 }
 

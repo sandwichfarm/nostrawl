@@ -18,6 +18,8 @@ vi.mock('./Trawler', () => {
       updateProgress = vi.fn().mockResolvedValue(undefined);
       pause = vi.fn();
       resume = vi.fn();
+      on = vi.fn().mockReturnThis();
+      emit = vi.fn();
     }
   };
 });
@@ -53,46 +55,52 @@ describe('NTQueue', () => {
     expect(queue['options']).toEqual(expect.objectContaining(options));
   });
 
-  it('should register callbacks with on method', () => {
+  it('should register callbacks with legacyOn method (deprecated)', () => {
     const callback = vi.fn();
     
-    queue.on('test_event', callback);
+    queue.legacyOn('test_event', callback);
     
     expect(queue['cb']['test_event']).toBe(callback);
+    // Should also have registered with EventEmitter
+    expect(queue.on).toHaveBeenCalledWith('test_event', callback);
   });
 
-  it('should register queue callbacks with on_queue method', () => {
+  it('should register queue callbacks with on_queue method (deprecated)', () => {
     const callback = vi.fn();
     
     queue.on_queue('test_event', callback);
     
-    expect(queue['cb']['queue_test_event']).toBe(callback);
+    expect(queue['cb']['queue_test_event']).toBe(undefined); // Now uses direct EventEmitter
+    expect(queue.on).toHaveBeenCalledWith('queue_test_event', callback);
   });
 
-  it('should register worker callbacks with on_worker method', () => {
+  it('should register worker callbacks with on_worker method (deprecated)', () => {
     const callback = vi.fn();
     
     queue.on_worker('test_event', callback);
     
-    expect(queue['cb']['worker_test_event']).toBe(callback);
+    expect(queue['cb']['worker_test_event']).toBe(undefined); // Now uses direct EventEmitter
+    expect(queue.on).toHaveBeenCalledWith('worker_test_event', callback);
   });
 
-  it('should call registered callbacks with _on method', async () => {
+  it('should call registered callbacks and emit event with _on method (deprecated)', async () => {
     const callback = vi.fn();
-    queue.on('test_event', callback);
+    queue.legacyOn('test_event', callback);
     
     await queue['_on']('test_event', 'arg1', 'arg2');
     
     expect(callback).toHaveBeenCalledWith('arg1', 'arg2');
+    expect(queue.emit).toHaveBeenCalledWith('test_event', 'arg1', 'arg2');
   });
 
-  it('should call handler methods with _on method', async () => {
+  it('should call handler methods with _on method (deprecated)', async () => {
     const handleTestEvent = vi.fn().mockResolvedValue(undefined);
     (queue as any)['handle_test_event'] = handleTestEvent;
     
     await queue['_on']('test_event', 'arg1', 'arg2');
     
     expect(handleTestEvent).toHaveBeenCalledWith('arg1', 'arg2');
+    expect(queue.emit).toHaveBeenCalledWith('test_event', 'arg1', 'arg2');
   });
 
   it('should handle queue_drained event correctly', async () => {

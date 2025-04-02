@@ -133,18 +133,20 @@ describe('PQueueAdapter', () => {
   });
 
   it('should update progress correctly', async () => {
-    const _onSpy = vi.spyOn(adapter as any, '_on').mockResolvedValue(undefined);
+    const emitSpy = vi.spyOn(adapter, 'emit').mockReturnValue(true);
     const progress = {
       found: 5,
       rejected: 0,
       relay: 'wss://relay1.com',
       last_timestamp: 1234567890,
+      highest_timestamp: 1234567890,
+      lowest_timestamp: 1234567890,
       total: 10
     };
     
     await adapter.updateProgress(progress, { id: 1 });
     
-    // Verify _on was called with the correct arguments
-    expect(_onSpy).toHaveBeenCalledWith('progress', progress);
+    // Verify emit was called with the correct arguments instead of _on
+    expect(emitSpy).toHaveBeenCalledWith('progress', progress);
   });
 });

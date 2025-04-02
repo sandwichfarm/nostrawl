@@ -5,6 +5,9 @@ export default class NTQueue extends NTTrawler {
   protected $q: any;
   protected queue: any;
   protected worker: any;
+  /**
+   * @deprecated Use EventEmitter's event system instead
+   */
   protected cb: Record<string, (...args: any[]) => void>;
   protected since: Record<string, number>;
   protected repeatTimeout: NodeJS.Timeout | null;
@@ -19,28 +22,49 @@ export default class NTQueue extends NTTrawler {
     this.repeatTimeout = null;
   }
 
+  /**
+   * @deprecated Use emit() instead. This will be removed in a future version.
+   */
   async _on(key: string, ...args: any[]): Promise<void> {
+    // Call legacy callback if it exists
     if (this.cb?.[key]) {
       this.cb[key](...args);
     }
+    
+    // Call handle_* method if it exists
     const handlerName = `handle_${key}` as keyof this;
     if (handlerName in this && typeof (this[handlerName] as Function) === 'function') {
       await (this[handlerName] as Function)(...args);
     }
+    
+    // Forward to the standard EventEmitter system
+    this.emit(key, ...args);
   }
 
-  on(key: string, callback: (...args: any[]) => void): this {
+  /**
+   * @deprecated Use the standard EventEmitter on() method directly. This will be removed in a future version.
+   */
+  legacyOn(key: string, callback: (...args: any[]) => void): this {
     this.cb[key] = callback;
+    this.on(key, callback);
     return this;
   }
 
+  /**
+   * @deprecated Use the standard EventEmitter on() method with prefixed events. This will be removed in a future version.
+   */
   on_queue(key: string, data: any): this {
-    this.on(`queue_${key}`, data);
+    const prefixedKey = `queue_${key}`;
+    this.on(prefixedKey, data);
     return this;
   }
 
+  /**
+   * @deprecated Use the standard EventEmitter on() method with prefixed events. This will be removed in a future version.
+   */
   on_worker(key: string, data: any): this {
-    this.on(`worker_${key}`, data);
+    const prefixedKey = `worker_${key}`;
+    this.on(prefixedKey, data);
     return this;
   }
 

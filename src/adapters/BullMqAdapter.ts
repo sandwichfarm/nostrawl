@@ -60,25 +60,67 @@ class BullMqAdapter extends NTQueue {
     this.logger.debug('Queue obliterated');
     
     const qEvents = new QueueEvents(this.$q.queue.name, { connection: this.options.adapterOptions?.connection });
-    qEvents.on('active', (...args: any[]) => this._on('queue_active', ...args).catch(err => this.logger.error('Error in queue_active handler', err)));
-    qEvents.on('completed', (...args: any[]) => this._on('queue_completed', ...args).catch(err => this.logger.error('Error in queue_completed handler', err)));
-    qEvents.on('failed', (...args: any[]) => this._on('queue_failed', ...args).catch(err => this.logger.error('Error in queue_failed handler', err)));
-    qEvents.on('progress', (...args: any[]) => this._on('queue_progress', ...args).catch(err => this.logger.error('Error in queue_progress handler', err)));
-    qEvents.on('waiting', (...args: any[]) => this._on('queue_waiting', ...args).catch(err => this.logger.error('Error in queue_waiting handler', err)));
-    qEvents.on('drained', (...args: any[]) => this._on('queue_drained', ...args).catch(err => this.logger.error('Error in queue_drained handler', err)));
-    qEvents.on('cleaned', (...args: any[]) => this._on('queue_cleaned', ...args).catch(err => this.logger.error('Error in queue_cleaned handler', err)));
+    qEvents.on('active', (...args: any[]) => {
+      this.logger.debug('Queue event: active');
+      this.emit('queue_active', ...args);
+    });
+    qEvents.on('completed', (...args: any[]) => {
+      this.logger.debug('Queue event: completed');
+      this.emit('queue_completed', ...args);
+    });
+    qEvents.on('failed', (...args: any[]) => {
+      this.logger.debug('Queue event: failed');
+      this.emit('queue_failed', ...args);
+    });
+    qEvents.on('progress', (...args: any[]) => {
+      this.logger.debug('Queue event: progress');
+      this.emit('queue_progress', ...args);
+    });
+    qEvents.on('waiting', (...args: any[]) => {
+      this.logger.debug('Queue event: waiting');
+      this.emit('queue_waiting', ...args);
+    });
+    qEvents.on('drained', (...args: any[]) => {
+      this.logger.debug('Queue event: drained');
+      this.emit('queue_drained', ...args);
+    });
+    qEvents.on('cleaned', (...args: any[]) => {
+      this.logger.debug('Queue event: cleaned');
+      this.emit('queue_cleaned', ...args);
+    });
   }
 
   private worker_init(): void {
     this.logger.debug('Initializing worker');
     this.$q.worker = new Worker(this.$q.queue.name, async ($job: any) => await this.trawl($job.data.chunk, $job), this.options.workerOptions);
-    this.$q.worker.on('active', (...args: any[]) => this._on('worker_active', ...args).catch(err => this.logger.error('Error in worker_active handler', err)));
-    this.$q.worker.on('completed', (...args: any[]) => this._on('worker_completed', ...args).catch(err => this.logger.error('Error in worker_completed handler', err)));
-    this.$q.worker.on('failed', (...args: any[]) => this._on('worker_failed', ...args).catch(err => this.logger.error('Error in worker_failed handler', err)));
-    this.$q.worker.on('progress', (...args: any[]) => this._on('worker_progress', ...args).catch(err => this.logger.error('Error in worker_progress handler', err)));
-    this.$q.worker.on('waiting', (...args: any[]) => this._on('worker_waiting', ...args).catch(err => this.logger.error('Error in worker_waiting handler', err)));
-    this.$q.worker.on('drained', (...args: any[]) => this._on('worker_drained', ...args).catch(err => this.logger.error('Error in worker_drained handler', err)));
-    this.$q.worker.on('cleaned', (...args: any[]) => this._on('worker_cleaned', ...args).catch(err => this.logger.error('Error in worker_cleaned handler', err)));
+    this.$q.worker.on('active', (...args: any[]) => {
+      this.logger.debug('Worker event: active');
+      this.emit('worker_active', ...args);
+    });
+    this.$q.worker.on('completed', (...args: any[]) => {
+      this.logger.debug('Worker event: completed');
+      this.emit('worker_completed', ...args);
+    });
+    this.$q.worker.on('failed', (...args: any[]) => {
+      this.logger.debug('Worker event: failed');
+      this.emit('worker_failed', ...args);
+    });
+    this.$q.worker.on('progress', (...args: any[]) => {
+      this.logger.debug('Worker event: progress');
+      this.emit('worker_progress', ...args);
+    });
+    this.$q.worker.on('waiting', (...args: any[]) => {
+      this.logger.debug('Worker event: waiting');
+      this.emit('worker_waiting', ...args);
+    });
+    this.$q.worker.on('drained', (...args: any[]) => {
+      this.logger.debug('Worker event: drained');
+      this.emit('worker_drained', ...args);
+    });
+    this.$q.worker.on('cleaned', (...args: any[]) => {
+      this.logger.debug('Worker event: cleaned');
+      this.emit('worker_cleaned', ...args);
+    });
   }
 
   private opts(options: BullMQTrawlerOptions): void {
@@ -140,6 +182,9 @@ class BullMqAdapter extends NTQueue {
     
     // Update the job's progress in BullMQ
     await $job.updateProgress(percentage);
+    
+    // Emit the progress event
+    this.emit('progress', progress);
   }
 
   async addJob(index: number, chunk: any): Promise<any> {

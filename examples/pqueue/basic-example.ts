@@ -84,7 +84,7 @@ async function main() {
   // Set up event handlers for receiving nostr events
   // This is the recommended way to handle events (easier than using parser)
   trawler.on('event', (event) => {
-    exampleLogger.info(`Received event: ${event.id}`);
+    exampleLogger.debug(`Received event: ${event.id}`);
     exampleLogger.debug(`From: ${event.pubkey.slice(0, 8)}... | Kind: ${event.kind}`);
     exampleLogger.debug(`Content: ${event.content.slice(0, 80)}${event.content.length > 80 ? '...' : ''}`);
   });

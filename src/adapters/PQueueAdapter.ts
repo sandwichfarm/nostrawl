@@ -110,32 +110,32 @@ export default class PQueueAdapter extends NTQueue {
     // Set up event listeners for queue events
     this.queue.on('active', () => {
       this.logger.debug('Queue: Job became active');
-      this._on('queue_active');
+      this.emit('queue_active');
     });
 
     this.queue.on('completed', async (result: any) => {
       this.logger.debug('Queue: Job completed');
-      await this._on('queue_completed', result);
+      this.emit('queue_completed', result);
     });
 
     this.queue.on('error', (error: Error) => {
       this.logger.error('Queue: Error occurred', error);
-      this._on('queue_error', error);
+      this.emit('queue_error', error);
     });
 
     this.queue.on('idle', () => {
       this.logger.info('Queue: Queue is idle');
-      this._on('queue_idle');
+      this.emit('queue_idle');
     });
 
     this.queue.on('add', () => {
       this.logger.debug('Queue: Job added');
-      this._on('queue_add');
+      this.emit('queue_add');
     });
 
     this.queue.on('next', () => {
       this.logger.trace('Queue: Processing next job');
-      this._on('queue_next');
+      this.emit('queue_next');
     });
 
     this.initialized = true;
@@ -246,6 +246,6 @@ export default class PQueueAdapter extends NTQueue {
     });
 
     // Emit the progress event
-    await this._on('progress', progress);
+    this.emit('progress', progress);
   }
 }
