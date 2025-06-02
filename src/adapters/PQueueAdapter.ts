@@ -126,6 +126,9 @@ export default class PQueueAdapter extends NTQueue {
     this.queue.on('idle', () => {
       this.logger.info('Queue: Queue is idle');
       (this as any).emit('queue_idle');
+      // Also emit drained event when queue becomes idle
+      (this as any).emit('drained');
+      this._on('queue_drained', null, null);
     });
 
     this.queue.on('add', () => {
